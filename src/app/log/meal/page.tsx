@@ -3,27 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { mapItemsToMacros } from "@/lib/nutrition";
 import { requireUserId } from "@/lib/user";
+import { parseItemsFromText } from "@/lib/parse";
 import { redirect } from "next/navigation";
-
-function parseItemsFromText(text: string) {
-  // examples: "2 chapati, dal 150g, curd 100g"
-  const parts = text
-    .split(/[,;]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.map((p) => {
-    // match "150g dal" or "2 chapati"
-    const m1 = p.match(/^(\d+)\s*([a-zA-Z]*)\s*(.*)$/); // "2 chapati" or "150g dal"
-    if (m1) {
-      const qty = parseInt(m1[1], 10);
-      const maybeUnit = (m1[2] || "").toLowerCase();
-      const unit = maybeUnit.includes("g") ? "g" : "piece";
-      const name = (m1[3] || p).trim() || p;
-      return { name, qty, unit: unit as "g" | "piece" };
-    }
-    return { name: p, qty: 1, unit: "piece" as const };
-  });
-}
 
 // Keep the action outside the component to avoid "session possibly null" TS issues.
 async function createMeal(formData: FormData) {
@@ -45,7 +26,6 @@ async function createMeal(formData: FormData) {
       mealType: mealType as any,
       at: new Date(atStr),
       rawText: text,
-      // ocrJson: omit (avoid TS error for JSON null)
       calories: total.calories,
       protein: total.protein,
       carbs: total.carbs,

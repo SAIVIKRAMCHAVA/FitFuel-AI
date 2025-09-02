@@ -1,33 +1,48 @@
 // path: src/lib/parse.ts
-export type ParsedItem = { name: string; qty: number; unit: "g" | "piece" };
+export type ParsedItem = {
+  name: string;
+  qty: number;
+  unit: "g" | "piece";
+};
 
-/** Parses strings like: "2 chapati, dal 150g, curd 100g" */
+/**
+ * Parse free-text food lines into {name, qty, unit}.
+ * Examples:
+ *  - "2 chapati"
+ *  - "dal 150g"
+ *  - "curd 100 g"
+ *  - "rice, dal 150g; curd 1 cup" => ["rice", "dal 150g", "curd 1 cup"]
+ * For unknown units we treat a leading number as "piece".
+ */
 export function parseItemsFromText(text: string): ParsedItem[] {
   const parts = text
-    .replace(/\n/g, " ")
     .split(/[,;]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const items: ParsedItem[] = [];
-  for (const p of parts) {
-    // "2 chapati" or "150g dal"
-    let m = p.match(/^(\d+)\s*([a-zA-Z]*)\s*(.*)$/);
-    if (m) {
-      const qty = parseInt(m[1], 10);
-      const maybeUnit = (m[2] || "").toLowerCase();
-      const unit: "g" | "piece" = maybeUnit.includes("g") ? "g" : "piece";
-      const name = (m[3] || p).trim() || p;
-      items.push({ name, qty, unit });
-      continue;
+
+  return parts.map((p) => {
+    // Handles "150g dal", "150 g dal", "dal 150g", "dal 150 g", or "2 chapati"
+    const gramsAtStart = p.match(/^(\d+)\s*g(?:r|ram|rams)?\s*(.+)$/i);
+    if (gramsAtStart) {
+      const qty = parseInt(gramsAtStart[1], 10);
+      const name = gramsAtStart[2].trim();
+      return { name, qty, unit: "g" as const };
     }
-    // "dal 150g"
-    m = p.match(/^(.*?)[\s:]+(\d+)\s*g$/i);
-    if (m) {
-      items.push({ name: m[1].trim(), qty: parseInt(m[2], 10), unit: "g" });
-      continue;
+
+    const gramsAtEnd = p.match(/^(.+?)\s+(\d+)\s*g(?:r|ram|rams)?$/i);
+    if (gramsAtEnd) {
+      const name = gramsAtEnd[1].trim();
+      const qty = parseInt(gramsAtEnd[2], 10);
+      return { name, qty, unit: "g" as const };
     }
-    // default
-    items.push({ name: p, qty: 1, unit: "piece" });
-  }
-  return items;
+
+    const countLeading = p.match(/^(\d+)\s+(.+)$/);
+    if (countLeading) {
+      const qty = parseInt(countLeading[1], 10);
+      const name = countLeading[2].trim();
+      return { name, qty, unit: "piece" as const };
+    }
+
+    return { name: p, qty: 1, unit: "piece" as const };
+  });
 }
