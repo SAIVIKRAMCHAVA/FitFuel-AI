@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import AppNavbar from "@/components/AppNavbar";
-import { Toaster } from "@/components/ui/sonner";
+import ToasterClient from "@/components/ToasterClient";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -14,10 +14,6 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "FitFuel AI",
   description: "Track meals, water, body, and get an AI diet plan.",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
 };
 
 export default function RootLayout({
@@ -33,7 +29,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AppNavbar />
           <main className="container py-6">{children}</main>
-          <Toaster richColors />
+          <ToasterClient />
         </ThemeProvider>
       </body>
     </html>
