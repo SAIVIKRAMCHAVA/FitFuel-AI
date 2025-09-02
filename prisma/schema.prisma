@@ -1,0 +1,150 @@
+// path: prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+  mealLogs      MealLog[]
+  waterLogs     WaterLog[]
+  weighIns      WeighIn[]
+  weeklyPlans   WeeklyPlan[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Profile {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  user       User    @relation(fields: [userId], references: [id])
+  heightCm   Int?
+  goal       String?
+  activity   String?
+  timezone   String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model FoodItem {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  unit      String
+  calories  Int
+  protein   Float
+  carbs     Float
+  fat       Float
+  createdAt DateTime @default(now())
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+model MealLog {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  mealType   MealType
+  at         DateTime
+  rawText    String?
+  ocrJson    Json?
+  calories   Int
+  protein    Float
+  carbs      Float
+  fat        Float
+  itemsJson  Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, at])
+}
+
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  at        DateTime
+  ml        Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+model WeighIn {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  at        DateTime
+  weightKg  Float
+  createdAt DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+model WeeklyPlan {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  weekStart  DateTime
+  planJson   Json
+  modelUsed  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, weekStart])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
