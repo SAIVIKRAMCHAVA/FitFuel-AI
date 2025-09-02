@@ -1,5 +1,5 @@
 // path: src/app/dashboard/page.tsx
-export const revalidate = 60; // cache this page for 60s
+export const revalidate = 0; // disable page caching for instant updates
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   });
   if (!user) redirect("/auth/login");
 
-  // These functions are cached in src/lib/stats.ts
+  // Fresh values every request (no cache)
   const [meals, water, body, plan] = await Promise.all([
     getTodayMealTotals(user.id),
     getWaterLast24h(user.id),
