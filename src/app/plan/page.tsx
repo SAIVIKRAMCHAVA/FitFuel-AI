@@ -6,6 +6,33 @@ import WeeklyPlanView from "@/components/WeeklyPlanView";
 import { getOrCreateWeeklyPlan, startOfThisWeekMonday } from "@/lib/plan";
 
 export const revalidate = 0;
+// path: src/app/plan/page.tsx  (only the top section inside the component)
+{
+  /* ...keep the code you have; just wrap the top with a header card */
+}
+<div className="space-y-4">
+  <section className="rounded-lg border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
+    <h1 className="text-2xl font-bold mb-2">Weekly Plan</h1>
+    <p className="text-sm text-muted-foreground">
+      Generate or view your cached plan for this week. Adjust meals as you log.
+    </p>
+    <div className="mt-4">
+      <form action={generateAction}>
+        <Button type="submit">
+          {existing ? "Regenerate Plan" : "Generate Plan"}
+        </Button>
+      </form>
+    </div>
+  </section>
+
+  {existing ? (
+    <WeeklyPlanView plan={existing.planJson as any} />
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      No plan yet — generate one to get started.
+    </p>
+  )}
+</div>;
 
 async function generateAction() {
   "use server";

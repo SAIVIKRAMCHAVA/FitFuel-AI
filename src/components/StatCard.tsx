@@ -1,5 +1,6 @@
 // path: src/components/StatCard.tsx
 import { ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function StatCard({
   title,
@@ -11,12 +12,16 @@ export default function StatCard({
   footer?: ReactNode;
 }) {
   return (
-    <div className="p-4 rounded border">
-      <div className="text-sm text-gray-600">{title}</div>
-      <div className="text-2xl font-semibold mt-1">{value}</div>
-      {footer ? (
-        <div className="text-xs text-gray-500 mt-1">{footer}</div>
-      ) : null}
-    </div>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="text-2xl font-semibold">{value}</div>
+        {footer ? (
+          <div className="text-xs text-muted-foreground mt-1">{footer}</div>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

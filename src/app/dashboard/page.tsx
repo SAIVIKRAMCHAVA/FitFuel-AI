@@ -9,8 +9,10 @@ import {
   getThisWeekPlan,
 } from "@/lib/stats";
 import StatCard from "@/components/StatCard";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
-// quick '+250ml' server action
+// quick '+250ml' server action (unchanged)
 async function addWater250() {
   "use server";
   const session = await auth();
@@ -28,11 +30,19 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.email) {
     return (
-      <div className="max-w-lg mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-2">Please login</h1>
-        <a className="underline" href="/auth/login">
-          Go to Login
-        </a>
+      <div className="max-w-lg mx-auto py-24 text-center space-y-4">
+        <h1 className="text-3xl font-bold">Welcome to FitFuel AI</h1>
+        <p className="text-muted-foreground">
+          Track meals, water and weight — then get a weekly plan powered by AI.
+        </p>
+        <div className="flex gap-2 justify-center">
+          <Link href="/auth/login">
+            <Button>Login</Button>
+          </Link>
+          <Link href="/auth/register">
+            <Button variant="secondary">Create account</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -50,24 +60,44 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <div className="grid md:grid-cols-4 gap-4">
+    <div className="space-y-6 animate-fade-in">
+      {/* Hero */}
+      <section className="rounded-lg border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Nice to see you back. Keep your streak going today!
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/log/meal">
+              <Button>➕ Log meal</Button>
+            </Link>
+            <Link href="/log/meal/image">
+              <Button variant="secondary">📷 Upload photo</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* KPIs */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Today's Calories"
+          title="Today’s Calories"
           value={`${meals.calories} kcal`}
           footer={`Meals: ${meals.count} • P ${Math.round(
             meals.protein
           )} / C ${Math.round(meals.carbs)} / F ${Math.round(meals.fat)}`}
         />
         <StatCard
-          title="Water (last 24h)"
+          title="Water (24h)"
           value={`${water} ml`}
           footer={
             <form action={addWater250}>
-              <button className="underline" type="submit">
+              <Button variant="link" className="h-auto p-0">
                 +250 ml
-              </button>
+              </Button>
             </form>
           }
         />
@@ -86,36 +116,34 @@ export default async function DashboardPage() {
           title="Weekly Plan"
           value={plan ? "Ready" : "Not generated"}
           footer={
-            <a className="underline" href="/plan">
+            <Link className="underline" href="/plan">
               {plan ? "Open plan →" : "Generate plan →"}
-            </a>
+            </Link>
           }
         />
-      </div>
+      </section>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        <a href="/log/meal" className="p-4 border rounded hover:bg-gray-50">
-          ➕ Log meal (text)
-        </a>
-        <a
-          href="/log/meal/image"
-          className="p-4 border rounded hover:bg-gray-50"
+      {/* Shortcuts */}
+      <section className="grid md:grid-cols-3 gap-4">
+        <Link
+          href="/debug/meals"
+          className="rounded-lg border p-4 hover:bg-muted/40 transition"
         >
-          📷 Log meal (image)
-        </a>
-        <a href="/log/water" className="p-4 border rounded hover:bg-gray-50">
-          💧 Log water
-        </a>
-        <a href="/log/weight" className="p-4 border rounded hover:bg-gray-50">
-          ⚖️ Log weight
-        </a>
-        <a href="/debug/meals" className="p-4 border rounded hover:bg-gray-50">
           🧪 Meals debug
-        </a>
-        <a href="/debug/weight" className="p-4 border rounded hover:bg-gray-50">
-          🧪 Weight debug
-        </a>
-      </div>
+        </Link>
+        <Link
+          href="/log/water"
+          className="rounded-lg border p-4 hover:bg-muted/40 transition"
+        >
+          💧 Log water
+        </Link>
+        <Link
+          href="/log/weight"
+          className="rounded-lg border p-4 hover:bg-muted/40 transition"
+        >
+          ⚖️ Log weight
+        </Link>
+      </section>
     </div>
   );
 }
