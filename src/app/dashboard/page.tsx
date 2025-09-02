@@ -1,4 +1,6 @@
 // path: src/app/dashboard/page.tsx
+export const revalidate = 60; // cache this page for 60s
+
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -12,7 +14,7 @@ import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-// quick '+250ml' server action (unchanged)
+// Quick "+250ml" action
 async function addWater250() {
   "use server";
   const session = await auth();
@@ -46,12 +48,14 @@ export default async function DashboardPage() {
       </div>
     );
   }
+
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: { id: true },
   });
   if (!user) redirect("/auth/login");
 
+  // These functions are cached in src/lib/stats.ts
   const [meals, water, body, plan] = await Promise.all([
     getTodayMealTotals(user.id),
     getWaterLast24h(user.id),
@@ -86,9 +90,9 @@ export default async function DashboardPage() {
         <StatCard
           title="Today’s Calories"
           value={`${meals.calories} kcal`}
-          footer={`Meals: ${meals.count} • P ${Math.round(
-            meals.protein
-          )} / C ${Math.round(meals.carbs)} / F ${Math.round(meals.fat)}`}
+          footer={`P ${Math.round(meals.protein)} / C ${Math.round(
+            meals.carbs
+          )} / F ${Math.round(meals.fat)}`}
         />
         <StatCard
           title="Water (24h)"

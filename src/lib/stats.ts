@@ -1,7 +1,6 @@
 // path: src/lib/stats.ts
 import { prisma } from "@/lib/db";
-import { bmi } from "@/lib/bmi";
-import { startOfThisWeekMonday } from "@/lib/plan";
+import { unstable_cache as cache } from "next/cache";
 
 function startOfLocalDay(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
@@ -12,54 +11,67 @@ function addDays(d: Date, n: number) {
   return x;
 }
 
-export async function getTodayMealTotals(userId: string) {
-  const start = startOfLocalDay();
-  const end = addDays(start, 1);
-  const meals = await prisma.mealLog.findMany({
-    where: { userId, at: { gte: start, lt: end } },
-  });
-  const sum = meals.reduce(
-    (s, m) => ({
-      calories: s.calories + (m.calories || 0),
-      protein: s.protein + (m.protein || 0),
-      carbs: s.carbs + (m.carbs || 0),
-      fat: s.fat + (m.fat || 0),
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
-  return { ...sum, count: meals.length };
-}
+export const getTodayMealTotals = cache(
+  async (userId: string) => {
+    const start = startOfLocalDay();
+    const end = addDays(start, 1);
+    const meals = await prisma.mealLog.aggregate({
+      where: { userId, at: { gte: start, lt: end } },
+      _sum: { calories: true, protein: true, carbs: true, fat: true },
+    });
+    const s = meals._sum;
+    return {
+      calories: Math.round(s.calories ?? 0),
+      protein: +(s.protein ?? 0).toFixed(1),
+      carbs: +(s.carbs ?? 0).toFixed(1),
+      fat: +(s.fat ?? 0).toFixed(1),
+    };
+  },
+  ["today_meals"],
+  { revalidate: 60 }
+);
 
-export async function getWaterLast24h(userId: string) {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const logs = await prisma.waterLog.findMany({
-    where: { userId, at: { gt: since } },
-  });
-  return logs.reduce((s, r) => s + r.ml, 0);
-}
+export const getWaterLast24h = cache(
+  async (userId: string) => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+    const water = await prisma.waterLog.aggregate({
+      where: { userId, at: { gte: start, lte: end } },
+      _sum: { ml: true },
+    });
+    return Math.round(water._sum.ml ?? 0);
+  },
+  ["water_24h"],
+  { revalidate: 60 }
+);
 
-export async function getCurrentBmi(userId: string) {
-  const [profile, latest] = await Promise.all([
-    prisma.profile.findUnique({
-      where: { userId },
-      select: { heightCm: true },
-    }),
-    prisma.weighIn.findFirst({ where: { userId }, orderBy: { at: "desc" } }),
-  ]);
-  const value =
-    latest?.weightKg && profile?.heightCm
-      ? bmi(latest.weightKg, profile.heightCm)
-      : null;
-  return {
-    bmi: value,
-    heightCm: profile?.heightCm ?? null,
-    weightKg: latest?.weightKg ?? null,
-    at: latest?.at ?? null,
-  };
-}
+export const getCurrentBmi = cache(
+  async (userId: string) => {
+    const [profile, latest] = await Promise.all([
+      prisma.profile.findUnique({ where: { userId } }),
+      prisma.weighIn.findFirst({ where: { userId }, orderBy: { at: "desc" } }),
+    ]);
+    const h = profile?.heightCm ?? null;
+    const w = latest?.weightKg ?? null;
+    const value = h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null;
+    return {
+      bmi: value,
+      heightCm: h,
+      weightKg: w,
+      at: latest?.at ?? null,
+    };
+  },
+  ["bmi_current"],
+  { revalidate: 300 }
+);
 
 export async function getThisWeekPlan(userId: string) {
-  const weekStart = startOfThisWeekMonday();
+  const now = new Date();
+  const day = now.getDay(); // Sun=0..Sat=6
+  const diff = day === 0 ? -6 : 1 - day;
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() + diff);
   const plan = await prisma.weeklyPlan.findUnique({
     where: { userId_weekStart: { userId, weekStart } },
   });

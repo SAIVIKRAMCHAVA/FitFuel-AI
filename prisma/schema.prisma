@@ -75,7 +75,7 @@ model MealLog {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@index([userId, at])
+  @@index([userId, at], map: "MealLog_userId_at_idx")
 }
 
 model WaterLog {
@@ -86,7 +86,7 @@ model WaterLog {
   ml        Int
   createdAt DateTime @default(now())
 
-  @@index([userId, at])
+  @@index([userId, at], map: "WaterLog_userId_at_idx")
 }
 
 model WeighIn {
@@ -97,7 +97,7 @@ model WeighIn {
   weightKg  Float
   createdAt DateTime @default(now())
 
-  @@index([userId, at])
+  @@index([userId, at], map: "WeighIn_userId_at_idx")
 }
 
 model WeeklyPlan {
@@ -110,7 +110,7 @@ model WeeklyPlan {
   notes      String?
   createdAt  DateTime @default(now())
 
-  @@unique([userId, weekStart])
+  @@unique([userId, weekStart], map: "WeeklyPlan_userId_weekStart_key")
 }
 
 model Account {
