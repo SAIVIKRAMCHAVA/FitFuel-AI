@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 async function saveWeighIn(formData: FormData) {
   "use server";
+
   const session = await auth();
   const email = session?.user?.email;
   if (!email) redirect("/auth/login");
@@ -12,7 +13,7 @@ async function saveWeighIn(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) redirect("/auth/login");
 
-  const weightKg = Number(formData.get("weightKg") || 0);
+  // height (optional)
   const heightCm = formData.get("heightCm");
   if (heightCm) {
     const h = Number(heightCm);
@@ -25,13 +26,16 @@ async function saveWeighIn(formData: FormData) {
     }
   }
 
+  // weight (required)
+  const weightKg = Number(formData.get("weightKg") || 0);
   if (Number.isFinite(weightKg) && weightKg > 0) {
     await prisma.weighIn.create({
       data: { userId: user.id, at: new Date(), weightKg },
     });
   }
 
-  redirect("/debug/weight");
+  // go to the production-safe history page
+  redirect("/weight/history");
 }
 
 export default async function WeightLogPage() {
@@ -55,6 +59,7 @@ export default async function WeightLogPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">Log Weight</h1>
+
       <form action={saveWeighIn} className="space-y-3">
         <input
           name="weightKg"
@@ -82,7 +87,8 @@ export default async function WeightLogPage() {
         </button>
       </form>
 
-      <a className="underline inline-block" href="/debug/weight">
+      {/* Updated link */}
+      <a className="underline inline-block" href="/weight/history">
         View history
       </a>
     </div>
