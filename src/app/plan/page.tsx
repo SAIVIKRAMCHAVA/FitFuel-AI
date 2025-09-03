@@ -6,6 +6,7 @@ import WeeklyPlanView from "@/components/WeeklyPlanView";
 import { getOrCreateWeeklyPlan, startOfThisWeekMonday } from "@/lib/plan";
 import { Button } from "@/components/ui/button";
 import { enforceRateLimit } from "@/lib/ratelimit";
+import type { Plan } from "@/lib/plan"; // <-- use the real Plan type
 
 export const revalidate = 0;
 
@@ -58,7 +59,7 @@ export default async function PlanPage() {
       </div>
 
       {existing ? (
-        <WeeklyPlanView plan={existing.planJson as any} />
+        <WeeklyPlanView plan={existing.planJson as unknown as Plan} />
       ) : (
         <p className="text-sm text-muted-foreground">
           No plan yet — click “Generate / Refresh Plan”.

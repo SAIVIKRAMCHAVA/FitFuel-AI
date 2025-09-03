@@ -5,8 +5,20 @@ import { analyzeMealImage } from "@/lib/vision";
 import { mapItemsToMacros } from "@/lib/nutrition";
 import { redirect } from "next/navigation";
 import { enforceRateLimit } from "@/lib/ratelimit";
+import type { Prisma, MealType } from "@prisma/client";
 
 export const runtime = "nodejs"; // needed for Tesseract/Gemini
+
+function toMealType(value: string): MealType {
+  const v = value.toUpperCase();
+  const allowed = new Set<MealType>([
+    "BREAKFAST",
+    "LUNCH",
+    "DINNER",
+    "SNACK",
+  ] as const);
+  return allowed.has(v as MealType) ? (v as MealType) : "SNACK";
+}
 
 async function saveFromImage(formData: FormData) {
   "use server";
@@ -26,8 +38,8 @@ async function saveFromImage(formData: FormData) {
     userId: user.id,
   });
 
-  const mealType = String(formData.get("mealType") || "SNACK");
-  const atStr = String(formData.get("at") || new Date().toISOString());
+  const mealType = toMealType(String(formData.get("mealType") ?? "SNACK"));
+  const atStr = String(formData.get("at") ?? new Date().toISOString());
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) return;
 
@@ -42,14 +54,15 @@ async function saveFromImage(formData: FormData) {
   await prisma.mealLog.create({
     data: {
       userId: user.id,
-      mealType: mealType as any,
+      mealType,
       at: new Date(atStr),
       rawText: vr.rawText.slice(0, 8000),
       calories: total.calories,
       protein: total.protein,
       carbs: total.carbs,
       fat: total.fat,
-      itemsJson: resolved as any,
+      // cast JSON safely with Prisma type (no `any`)
+      itemsJson: resolved as unknown as Prisma.InputJsonValue,
     },
   });
 
@@ -100,8 +113,8 @@ export default async function MealImageLogPage() {
         </button>
       </form>
       <p className="text-sm text-gray-600">
-        Uses Google Gemini Vision (free) via <code>GEMINI_API_KEY</code>, falls
-        back to Tesseract OCR if not set.
+        Uses Google Gemini Vision via <code>GEMINI_API_KEY</code>, falls back to
+        Tesseract OCR if not set.
       </p>
       <a className="underline inline-block" href="/debug/meals">
         View meals
