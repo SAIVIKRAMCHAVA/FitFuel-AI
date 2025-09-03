@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "build:prod": "pnpm prisma migrate deploy && pnpm build",
+    "build:prod": "pnpm prisma generate && pnpm prisma migrate deploy && pnpm build",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
