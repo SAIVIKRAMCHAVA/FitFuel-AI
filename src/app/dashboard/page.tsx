@@ -20,11 +20,14 @@ async function addWater250() {
   const session = await auth();
   const email = session?.user?.email;
   if (!email) redirect("/auth/login");
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) redirect("/auth/login");
+
   await prisma.waterLog.create({
     data: { userId: user.id, ml: 250, at: new Date() },
   });
+
   redirect("/dashboard");
 }
 
@@ -130,10 +133,10 @@ export default async function DashboardPage() {
       {/* Shortcuts */}
       <section className="grid md:grid-cols-3 gap-4">
         <Link
-          href="/debug/meals"
+          href="/meals"
           className="rounded-lg border p-4 hover:bg-muted/40 transition"
         >
-          🧪 Meals debug
+          🍽️ View meals
         </Link>
         <Link
           href="/log/water"
