@@ -4,17 +4,27 @@ import { prisma } from "@/lib/db";
 import { analyzeMealImage } from "@/lib/vision";
 import { mapItemsToMacros } from "@/lib/nutrition";
 import { redirect } from "next/navigation";
+import { enforceRateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs"; // needed for Tesseract/Gemini
 
 async function saveFromImage(formData: FormData) {
   "use server";
+
   const session = await auth();
   const email = session?.user?.email;
   if (!email) redirect("/auth/login");
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) redirect("/auth/login");
+
+  // Rate limit: 5 uploads / 60s per user
+  await enforceRateLimit({
+    route: "/log/meal/image",
+    seconds: 60,
+    limit: 5,
+    userId: user.id,
+  });
 
   const mealType = String(formData.get("mealType") || "SNACK");
   const atStr = String(formData.get("at") || new Date().toISOString());
