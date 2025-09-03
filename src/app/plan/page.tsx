@@ -93,7 +93,7 @@ export default async function PlanPage() {
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">This Week&apos;s Diet Plan</h1>
+        <h1 className="text-2xl font-bold">This Week's Diet Plan</h1>
         <form action={generateAction}>
           <Button type="submit">Generate / Refresh Plan</Button>
         </form>
@@ -103,9 +103,10 @@ export default async function PlanPage() {
         <WeeklyPlanView plan={normalizedPlan} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          No plan yet — click “Generate / Refresh Plan”.
+          No plan yet - click 'Generate / Refresh Plan'.
         </p>
       )}
     </div>
   );
 }
+

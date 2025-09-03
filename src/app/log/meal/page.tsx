@@ -34,7 +34,7 @@ async function createMeal(formData: FormData) {
     },
   });
 
-  redirect("/debug/meals");
+  redirect("/meals");
 }
 
 export default async function MealLogPage() {
@@ -77,7 +77,7 @@ export default async function MealLogPage() {
         </button>
       </form>
       <p className="text-sm text-gray-600">
-        After saving you’ll be redirected to <code>/debug/meals</code>.
+        After saving you'll be redirected to <code>/meals</code>.
       </p>
     </div>
   );

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 
 export const revalidate = 0;
 
+type WaterRow = { id: string; at: Date; ml: number };
+
 export default async function WaterDebugPage() {
   const session = await auth();
   if (!session?.user?.email) return <a href="/auth/login">Login</a>;
@@ -14,13 +16,14 @@ export default async function WaterDebugPage() {
   });
   if (!user) return <div>User not found</div>;
 
-  const rows = await prisma.waterLog.findMany({
+  const rows: WaterRow[] = await prisma.waterLog.findMany({
     where: { userId: user.id },
     orderBy: { at: "desc" },
     take: 50,
+    select: { id: true, at: true, ml: true },
   });
 
-  const total = rows.reduce((s, r) => s + r.ml, 0);
+  const total = rows.reduce((s: number, r: WaterRow) => s + r.ml, 0);
 
   return (
     <div className="p-6">
@@ -28,15 +31,18 @@ export default async function WaterDebugPage() {
       <p className="text-sm text-gray-500 mb-4">Sum: {total} ml</p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="text-left border-b">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="py-2 pr-4">When</th>
-              <th className="py-2 pr-4">ml</th>
+              <th className="text-left py-2 pr-4 font-medium">When</th>
+              <th className="text-left py-2 pr-4 font-medium">ml</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b">
+            {rows.map((r: WaterRow) => (
+              <tr
+                key={r.id}
+                className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
+              >
                 <td className="py-2 pr-4">{new Date(r.at).toLocaleString()}</td>
                 <td className="py-2 pr-4">{r.ml}</td>
               </tr>

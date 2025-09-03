@@ -66,7 +66,7 @@ async function saveFromImage(formData: FormData) {
     },
   });
 
-  redirect("/debug/meals");
+  redirect("/meals");
 }
 
 export default async function MealImageLogPage() {
@@ -85,11 +85,7 @@ export default async function MealImageLogPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">Log Meal (Image)</h1>
-      <form
-        action={saveFromImage}
-        className="space-y-3"
-        encType="multipart/form-data"
-      >
+      <form action={saveFromImage} className="space-y-3">
         <select name="mealType" className="w-full p-2 border rounded">
           <option>BREAKFAST</option>
           <option>LUNCH</option>
@@ -116,7 +112,7 @@ export default async function MealImageLogPage() {
         Uses Google Gemini Vision via <code>GEMINI_API_KEY</code>, falls back to
         Tesseract OCR if not set.
       </p>
-      <a className="underline inline-block" href="/debug/meals">
+      <a className="underline inline-block" href="/meals">
         View meals
       </a>
     </div>

@@ -6,6 +6,8 @@ import { bmi, bmiCategory } from "@/lib/bmi";
 
 export const revalidate = 0;
 
+type WeighIn = { id: string; at: Date; weightKg: number };
+
 export default async function WeightDebugPage() {
   const session = await auth();
   if (!session?.user?.email) return <a href="/auth/login">Login</a>;
@@ -23,7 +25,7 @@ export default async function WeightDebugPage() {
   });
   if (!user) return <div>User not found</div>;
 
-  const points = user.weighIns.map((w) => ({
+  const points = user.weighIns.map((w: WeighIn) => ({
     at: w.at.toISOString(),
     kg: w.weightKg,
   }));
@@ -40,13 +42,13 @@ export default async function WeightDebugPage() {
         <p className="text-sm text-gray-600">Latest</p>
         <p className="text-lg">
           {latest
-            ? `${latest.weightKg.toFixed(1)} kg • ${new Date(
+            ? `${latest.weightKg.toFixed(1)} kg - ${new Date(
                 latest.at
               ).toLocaleString()}`
-            : "—"}
+            : "-"}
         </p>
         <p className="text-sm mt-1">
-          BMI: <b>{currentBmi ?? "—"}</b>{" "}
+          BMI: <b>{currentBmi ?? "-"}</b>{" "}
           {currentBmi ? `(${bmiCategory(currentBmi)})` : ""}
         </p>
         {!user.profile?.heightCm && (
@@ -67,18 +69,21 @@ export default async function WeightDebugPage() {
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="text-left border-b">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="py-2 pr-4">When</th>
-              <th className="py-2 pr-4">Weight (kg)</th>
+              <th className="text-left py-2 pr-4 font-medium">When</th>
+              <th className="text-left py-2 pr-4 font-medium">Weight (kg)</th>
             </tr>
           </thead>
           <tbody>
             {user.weighIns
               .slice()
               .reverse()
-              .map((r) => (
-                <tr key={r.id} className="border-b">
+              .map((r: WeighIn) => (
+                <tr
+                  key={r.id}
+                  className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
+                >
                   <td className="py-2 pr-4">
                     {new Date(r.at).toLocaleString()}
                   </td>

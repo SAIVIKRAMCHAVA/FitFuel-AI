@@ -39,8 +39,8 @@ Return STRICT JSON ONLY in this exact shape (no prose, no markdown):
 
 Rules:
 - "unit" must be exactly "g" or "piece".
-- Whole items like roti/chapati/idli/dosa/egg → "piece".
-- Curries/rice/dal/yogurt → estimate grams ("g") if visible.
+- Whole items like roti/chapati/idli/dosa/egg -> "piece".
+- Curries/rice/dal/yogurt -> estimate grams ("g") if visible.
 - If unsure, set qty=1 and unit="piece".
 - Output must be valid JSON and nothing else.`;
 
@@ -68,3 +68,4 @@ Rules:
   const items = parseItemsFromText(raw);
   return { rawText: raw, items, source: "tesseract" };
 }
+

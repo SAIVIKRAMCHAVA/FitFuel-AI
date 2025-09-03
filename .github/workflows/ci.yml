@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 jobs:
@@ -10,14 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v3
         with:
-          version: 9
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
+
+      # Generate Prisma Client so types (PrismaClient, enums) are available to tsc/jest
+      - run: pnpm prisma generate
+
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

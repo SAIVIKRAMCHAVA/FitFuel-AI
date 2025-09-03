@@ -27,22 +27,22 @@ export default async function MealsPage() {
 
       {meals.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No meals yet. Try logging one from “Log meal”.
+          No meals yet. Try logging one from 'Log meal'.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted text-muted-foreground">
               <tr>
-                <th className="text-left p-3">When</th>
-                <th className="text-left p-3">Type</th>
-                <th className="text-left p-3">Items</th>
-                <th className="text-left p-3">Calories</th>
-                <th className="text-left p-3">P / C / F</th>
+                <th className="text-left p-3 font-medium">When</th>
+                <th className="text-left p-3 font-medium">Type</th>
+                <th className="text-left p-3 font-medium">Items</th>
+                <th className="text-left p-3 font-medium">Calories</th>
+                <th className="text-left p-3 font-medium">P / C / F</th>
               </tr>
             </thead>
             <tbody>
-              {meals.map((m) => {
+              {meals.map((m: any) => {
                 const items: MealItem[] = Array.isArray(m.itemsJson)
                   ? (m.itemsJson as MealItem[])
                   : [];
@@ -68,7 +68,7 @@ export default async function MealsPage() {
                 return (
                   <tr
                     key={m.id}
-                    className="odd:bg-white even:bg-gray-50 border-t"
+                    className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
                   >
                     <td className="p-3 whitespace-nowrap">{when}</td>
                     <td className="p-3">{m.mealType}</td>

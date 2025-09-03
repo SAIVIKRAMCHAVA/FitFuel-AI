@@ -57,8 +57,7 @@ export default function WeeklyPlanView({ plan }: { plan: Plan }) {
                   <div className="flex justify-between">
                     <div className="font-medium">{m.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {Math.round(m.calories)} kcal • P {m.protein} • C{" "}
-                      {m.carbs} • F {m.fat}
+                      {Math.round(m.calories)} kcal | P {m.protein} | C {m.carbs} | F {m.fat}
                     </div>
                   </div>
                   {m.items && m.items.length > 0 && (
@@ -77,3 +76,4 @@ export default function WeeklyPlanView({ plan }: { plan: Plan }) {
     </div>
   );
 }
+

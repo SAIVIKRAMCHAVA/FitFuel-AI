@@ -40,11 +40,11 @@ export default async function WeightHistoryPage() {
       ) : (
         <div className="overflow-x-auto rounded-xl border">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted text-muted-foreground">
               <tr>
-                <th className="text-left p-3">When</th>
-                <th className="text-left p-3">Weight (kg)</th>
-                <th className="text-left p-3">Height (cm)</th>
+                <th className="text-left p-3 font-medium">When</th>
+                <th className="text-left p-3 font-medium">Weight (kg)</th>
+                <th className="text-left p-3 font-medium">Height (cm)</th>
               </tr>
             </thead>
             <tbody>
@@ -58,15 +58,15 @@ export default async function WeightHistoryPage() {
                   return (
                     <tr
                       key={r.id}
-                      className="odd:bg-white even:bg-gray-50 border-t"
+                      className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
                     >
                       <td className="p-3 whitespace-nowrap">{when}</td>
                       <td className="p-3">
                         {typeof r.weightKg === "number"
                           ? r.weightKg.toFixed(1)
-                          : "—"}
+                          : "-"}
                       </td>
-                      <td className="p-3">{currentHeight ?? "—"}</td>
+                      <td className="p-3">{currentHeight ?? "-"}</td>
                     </tr>
                   );
                 }

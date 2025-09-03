@@ -1,15 +1,17 @@
-// path: src/app/log/water/page.tsx
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
+type WaterRow = { id: string; at: Date; ml: number };
+
 async function getLast24hTotal(userId: string) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const logs = await prisma.waterLog.findMany({
+  const logs: WaterRow[] = await prisma.waterLog.findMany({
     where: { userId, at: { gt: since } },
     orderBy: { at: "desc" },
+    select: { id: true, at: true, ml: true },
   });
-  const total = logs.reduce((s, l) => s + l.ml, 0);
+  const total = logs.reduce((s: number, l: WaterRow) => s + l.ml, 0);
   return { total, logs };
 }
 
@@ -19,7 +21,10 @@ async function addWater(formData: FormData) {
   const email = session?.user?.email;
   if (!email) redirect("/auth/login");
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
   if (!user) redirect("/auth/login");
 
   const ml = Number(formData.get("ml") || 0);
@@ -80,7 +85,7 @@ export default async function WaterLogPage() {
 
       <div className="flex gap-2">
         {[250, 500, 750, 1000].map((amt) => (
-          <form action={addWater} key={amt}>
+          <form action={addWater} key={amt} style={{ display: "inline" }}>
             <input type="hidden" name="ml" value={amt} />
             <button className="px-3 py-2 border rounded" type="submit">
               + {amt} ml
@@ -102,9 +107,7 @@ export default async function WaterLogPage() {
             <tbody>
               {logs.map((r) => (
                 <tr key={r.id} className="border-b">
-                  <td className="py-2 pr-4">
-                    {new Date(r.at).toLocaleString()}
-                  </td>
+                  <td className="py-2 pr-4">{new Date(r.at).toLocaleString()}</td>
                   <td className="py-2 pr-4">{r.ml} ml</td>
                 </tr>
               ))}
@@ -120,9 +123,7 @@ export default async function WaterLogPage() {
         </div>
       </div>
 
-      <a className="underline inline-block" href="/dashboard">
-        ← Back to dashboard
-      </a>
+      <a className="underline inline-block" href="/dashboard">Back to dashboard</a>
     </div>
   );
 }

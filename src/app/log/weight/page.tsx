@@ -76,9 +76,7 @@ export default async function WeightLogPage() {
           step="1"
           min="50"
           placeholder={`Height (cm)${
-            user?.profile?.heightCm
-              ? ` — current ${user.profile.heightCm} cm`
-              : ""
+            user?.profile?.heightCm ? ` (current ${user.profile.heightCm} cm)` : ""
           }`}
           className="w-full p-2 border rounded"
         />
@@ -94,3 +92,4 @@ export default async function WeightLogPage() {
     </div>
   );
 }
+

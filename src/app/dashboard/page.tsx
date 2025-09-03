@@ -38,7 +38,7 @@ export default async function DashboardPage() {
       <div className="max-w-lg mx-auto py-24 text-center space-y-4">
         <h1 className="text-3xl font-bold">Welcome to FitFuel AI</h1>
         <p className="text-muted-foreground">
-          Track meals, water and weight — then get a weekly plan powered by AI.
+          Track meals, water and weight - then get a weekly plan powered by AI.
         </p>
         <div className="flex gap-2 justify-center">
           <Link href="/auth/login">
@@ -79,10 +79,10 @@ export default async function DashboardPage() {
           </div>
           <div className="flex gap-2">
             <Link href="/log/meal">
-              <Button>➕ Log meal</Button>
+              <Button>Log meal</Button>
             </Link>
             <Link href="/log/meal/image">
-              <Button variant="secondary">📷 Upload photo</Button>
+              <Button variant="secondary">Upload photo</Button>
             </Link>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
       {/* KPIs */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Today’s Calories"
+          title="Today's Calories"
           value={`${meals.calories} kcal`}
           footer={`P ${Math.round(meals.protein)} / C ${Math.round(
             meals.carbs
@@ -110,11 +110,11 @@ export default async function DashboardPage() {
         />
         <StatCard
           title="Body"
-          value={body.bmi != null ? `BMI ${body.bmi}` : "—"}
+          value={body.bmi != null ? `BMI ${body.bmi}` : "-"}
           footer={
             body.weightKg
               ? `${body.weightKg.toFixed(1)} kg${
-                  body.heightCm ? ` • ${body.heightCm} cm` : ""
+                  body.heightCm ? `, ${body.heightCm} cm` : ""
                 }`
               : "Log your weight"
           }
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
           value={plan ? "Ready" : "Not generated"}
           footer={
             <Link className="underline" href="/plan">
-              {plan ? "Open plan →" : "Generate plan →"}
+              {plan ? "Open plan" : "Generate plan"}
             </Link>
           }
         />
@@ -136,21 +136,22 @@ export default async function DashboardPage() {
           href="/meals"
           className="rounded-lg border p-4 hover:bg-muted/40 transition"
         >
-          🍽️ View meals
+          View meals
         </Link>
         <Link
           href="/log/water"
           className="rounded-lg border p-4 hover:bg-muted/40 transition"
         >
-          💧 Log water
+          Log water
         </Link>
         <Link
           href="/log/weight"
           className="rounded-lg border p-4 hover:bg-muted/40 transition"
         >
-          ⚖️ Log weight
+          Log weight
         </Link>
       </section>
     </div>
   );
 }
+

@@ -4,6 +4,17 @@ import { prisma } from "@/lib/db";
 
 export const revalidate = 0;
 
+type MealRow = {
+  id: string;
+  at: Date;
+  mealType: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  rawText: string | null;
+};
+
 export default async function MealsDebugPage() {
   const session = await auth();
   if (!session?.user?.email) {
@@ -27,16 +38,26 @@ export default async function MealsDebugPage() {
       <div className="max-w-lg mx-auto p-6">
         <h1 className="text-2xl font-bold mb-2">User not found</h1>
         <p className="text-sm text-gray-500">
-          Your session is valid but we couldn’t find your user record.
+          Your session is valid but we couldn't find your user record.
         </p>
       </div>
     );
   }
 
-  const rows = await prisma.mealLog.findMany({
+  const rows: MealRow[] = await prisma.mealLog.findMany({
     where: { userId: dbUser.id },
     orderBy: { at: "desc" },
     take: 20,
+    select: {
+      id: true,
+      at: true,
+      mealType: true,
+      calories: true,
+      protein: true,
+      carbs: true,
+      fat: true,
+      rawText: true,
+    },
   });
 
   return (
@@ -47,24 +68,26 @@ export default async function MealsDebugPage() {
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="text-left border-b">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="py-2 pr-4">When</th>
-              <th className="py-2 pr-4">Type</th>
-              <th className="py-2 pr-4">Calories</th>
-              <th className="py-2 pr-4">P/C/F</th>
-              <th className="py-2 pr-4">Raw</th>
+              <th className="text-left py-2 pr-4 font-medium">When</th>
+              <th className="text-left py-2 pr-4 font-medium">Type</th>
+              <th className="text-left py-2 pr-4 font-medium">Calories</th>
+              <th className="text-left py-2 pr-4 font-medium">P/C/F</th>
+              <th className="text-left py-2 pr-4 font-medium">Raw</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b">
+            {rows.map((r: MealRow) => (
+              <tr
+                key={r.id}
+                className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
+              >
                 <td className="py-2 pr-4">{new Date(r.at).toLocaleString()}</td>
                 <td className="py-2 pr-4">{r.mealType}</td>
                 <td className="py-2 pr-4">{r.calories}</td>
                 <td className="py-2 pr-4">
-                  {Math.round(r.protein)} / {Math.round(r.carbs)} /{" "}
-                  {Math.round(r.fat)}
+                  {Math.round(r.protein)} / {Math.round(r.carbs)} / {Math.round(r.fat)}
                 </td>
                 <td className="py-2 pr-4">{r.rawText}</td>
               </tr>
