@@ -15,11 +15,22 @@ export async function getClientIp(): Promise<string> {
   return h.get("x-real-ip") || h.get("x-vercel-forwarded-for") || "0.0.0.0";
 }
 
+export class RateLimitError extends Error {
+  status: number;
+  reset: string;
+  constructor(reset: string) {
+    super("Too Many Requests");
+    this.name = "RateLimitError";
+    this.status = 429;
+    this.reset = reset;
+  }
+}
+
 export async function enforceRateLimit(opts: {
   route: string;
   seconds: number; // window size
   limit: number; // max count in window
-  userId: string; // <-- require a real user id (we rate-limit only signed-in flows)
+  userId: string; // require a real user id (we rate-limit only signed-in flows)
   ip?: string | null;
 }) {
   const window = startOfWindow(opts.seconds);
@@ -43,9 +54,6 @@ export async function enforceRateLimit(opts: {
     const reset = new Date(
       window.getTime() + opts.seconds * 1000
     ).toISOString();
-    const err = new Error("Too Many Requests");
-    (err as any).status = 429; // attach metadata for UI/handlers
-    (err as any).reset = reset; // ISO time when the window resets
-    throw err;
+    throw new RateLimitError(reset);
   }
 }

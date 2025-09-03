@@ -1,10 +1,9 @@
+// path: src/lib/__tests__/nutrition.test.ts
 /// <reference types="jest" />
 
 import { mapItemsToMacros } from "@/lib/nutrition";
 
-export {};
-
-// Mock prisma used inside nutrition mapping (if nutrition.ts imports prisma)
+// Mock DB used inside nutrition.ts
 jest.mock("@/lib/db", () => {
   const foodItem = [
     {

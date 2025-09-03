@@ -1,7 +1,5 @@
-// path: jest.config.ts
-import type { Config } from "jest";
-
-const config: Config = {
+/** @type {import('jest').Config} */
+module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
@@ -12,9 +10,8 @@ const config: Config = {
     "ts-jest": {
       tsconfig: "<rootDir>/tsconfig.jest.json",
       isolatedModules: true,
-      useESM: false,
     },
   },
+  // NEW: load our mocks (e.g., next/cache) for every test
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 };
-
-export default config;
