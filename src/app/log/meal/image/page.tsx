@@ -39,7 +39,12 @@ async function saveFromImage(formData: FormData) {
   });
 
   const mealType = toMealType(String(formData.get("mealType") ?? "SNACK"));
-  const atStr = String(formData.get("at") ?? new Date().toISOString());
+  const atRaw = String(formData.get("at") ?? "").trim();
+  const at = (() => {
+    if (!atRaw) return new Date();
+    const parsed = new Date(atRaw);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  })();
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) return;
 
@@ -55,7 +60,7 @@ async function saveFromImage(formData: FormData) {
     data: {
       userId: user.id,
       mealType,
-      at: new Date(atStr),
+      at,
       rawText: vr.rawText.slice(0, 8000),
       calories: total.calories,
       protein: total.protein,
