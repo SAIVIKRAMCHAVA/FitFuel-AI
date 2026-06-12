@@ -63,7 +63,7 @@ AUTH_SECRET="complex-long-random-string"
 # Optional
 NEXTAUTH_URL="http://localhost:3000"
 GEMINI_API_KEY=""  # set to enable AI features; otherwise OCR fallback is used
-GEMINI_MODEL="gemini-3.5-flash" # optional; defaults to this if omitted
+GEMINI_MODEL="gemini-2.5-flash" # optional; defaults to this if omitted
 ```
 
 3. Generate & migrate Prisma

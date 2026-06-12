@@ -1,6 +1,11 @@
 /// <reference types="jest" />
 
-import { DEFAULT_GEMINI_MODEL, getGeminiModelName } from "@/lib/gemini";
+import {
+  DEFAULT_GEMINI_MODEL,
+  FALLBACK_GEMINI_MODELS,
+  getGeminiModelName,
+  getGeminiModelNames,
+} from "@/lib/gemini";
 
 const originalModel = process.env.GEMINI_MODEL;
 
@@ -28,4 +33,14 @@ test("prefers an explicit caller model over GEMINI_MODEL", () => {
   process.env.GEMINI_MODEL = "gemini-env-model";
 
   expect(getGeminiModelName(" gemini-call-model ")).toBe("gemini-call-model");
+});
+
+test("deduplicates configured and fallback model names", () => {
+  process.env.GEMINI_MODEL = FALLBACK_GEMINI_MODELS[0];
+
+  expect(getGeminiModelNames()).toEqual([
+    FALLBACK_GEMINI_MODELS[0],
+    DEFAULT_GEMINI_MODEL,
+    ...FALLBACK_GEMINI_MODELS.slice(1),
+  ]);
 });

@@ -1,5 +1,5 @@
 // path: src/lib/vision.ts
-import { getGeminiGenerativeModel } from "@/lib/gemini";
+import { getGemini, runWithGeminiModelFallback } from "@/lib/gemini";
 import { parseItemsFromText, ParsedItem } from "@/lib/parse";
 
 type VisionResult = {
@@ -28,10 +28,8 @@ export async function analyzeMealImage(
   bytes: Buffer,
   mime: string,
 ): Promise<VisionResult> {
-  const gemini = getGeminiGenerativeModel();
-
   // --- Prefer Google Gemini Vision ---
-  if (gemini) {
+  if (getGemini()) {
     try {
       const prompt = `You are a nutrition extractor for Indian meals.
 Return STRICT JSON ONLY in this exact shape (no prose, no markdown):
@@ -45,16 +43,21 @@ Rules:
 - Output must be valid JSON and nothing else.`;
 
       const base64 = bytes.toString("base64");
-      const result = await gemini.model.generateContent([
-        { text: prompt },
-        { inlineData: { data: base64, mimeType: mime } } as any,
-      ]);
+      const { result } = await runWithGeminiModelFallback(({ model }) =>
+        model.generateContent([
+          { text: prompt },
+          { inlineData: { data: base64, mimeType: mime } } as any,
+        ]),
+      );
 
       const text = result.response.text() ?? "";
       const items = safeParseItems(text) ?? parseItemsFromText(text);
       return { rawText: text, items, source: "gemini" };
     } catch (error) {
-      console.error("Gemini image analysis failed; using OCR fallback.", error);
+      console.error("Gemini image analysis failed.", error);
+      throw new Error(
+        "AI image analysis is temporarily unavailable. Please try again in a minute.",
+      );
     }
   }
 
