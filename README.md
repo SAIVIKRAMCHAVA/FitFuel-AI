@@ -6,7 +6,7 @@ This project is part of my portfolio. If you’re a recruiter or hiring manager,
 
 ## Highlights
 
-- Log meals by text or photo; map items to calories and macros.
+- Log meals by text or photo; image logs estimate calories and macros with Gemini.
 - Track water and weight; view trends and BMI.
 - Generate a 7‑day plan with Google Gemini (JSON schema guarded, rate‑limited).
 - First‑class dark mode, responsive UI, and accessible forms.
@@ -19,14 +19,14 @@ This project is part of my portfolio. If you’re a recruiter or hiring manager,
 - `Prisma` + PostgreSQL for data (users, logs, foods, plans, rate limits).
 - `next-auth` (credentials) + `@auth/prisma-adapter`.
 - `Tailwind CSS`, `next-themes`, and `lucide-react` for UI.
-- `@google/generative-ai` for plan generation; `tesseract.js` OCR fallback.
+- `@google/generative-ai` for photo macro estimates and plan generation; `tesseract.js` OCR fallback.
 - `Jest` + `ts-jest` with a tiny mock for `next/cache`.
 
 ## Features In Depth
 
-- Nutrition mapping: `src/lib/nutrition.ts` uses a synonyms map (chapati/roti, dal/daal, etc.) and supports per‑100g / per‑piece conversions.
+- Nutrition mapping: `src/lib/nutrition.ts` supports text logging and image fallback with a seeded Indian foods table.
 - Text parser: `src/lib/parse.ts` turns text like `2 chapati, dal 150g, curd 100g` into structured items.
-- Image → items: `src/lib/vision.ts` prefers Gemini Vision; falls back to OCR and then reuses the parser.
+- Image → macros: `src/lib/vision.ts` asks Gemini for food items, portions, and per-item calories/protein/carbs/fat; if Gemini cannot produce usable estimates, the app falls back to OCR/database mapping.
 - Weekly plan: `src/lib/plan.ts` builds a context from your last week and asks Gemini to produce schema‑valid JSON (checked with Zod) before storing.
 - Rate limiting: `src/lib/ratelimit.ts` prevents abuse of image upload and plan generation.
 - Auth everywhere: server actions verify the signed‑in user and redirect if missing.

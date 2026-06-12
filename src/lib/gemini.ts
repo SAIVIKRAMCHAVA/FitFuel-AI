@@ -31,17 +31,6 @@ export function getGemini() {
   return new GoogleGenerativeAI(key);
 }
 
-export function getGeminiGenerativeModel(model?: string) {
-  const gemini = getGemini();
-  if (!gemini) return null;
-
-  const modelName = getGeminiModelName(model);
-  return {
-    model: gemini.getGenerativeModel({ model: modelName }),
-    modelName,
-  };
-}
-
 export async function runWithGeminiModelFallback<T>(
   run: (attempt: GeminiModelAttempt) => Promise<T>,
   model?: string,

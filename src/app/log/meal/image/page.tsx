@@ -63,9 +63,32 @@ async function saveFromImage(
     const bytes = Buffer.from(ab);
     const vr = await analyzeMealImage(bytes, file.type);
 
-    const { resolved, total } = await mapItemsToMacros(
-      vr.items.map((i) => ({ name: i.name, qty: i.qty, unit: i.unit })),
-    );
+    const nutrition = vr.estimatedItems?.length
+      ? {
+          resolved: vr.estimatedItems.map((item) => ({
+            name: item.name,
+            qty: item.qty,
+            unit: item.unit,
+            macros: {
+              calories: item.calories,
+              protein: item.protein,
+              carbs: item.carbs,
+              fat: item.fat,
+            },
+            source: "gemini",
+            confidence: item.confidence,
+            notes: item.notes,
+          })),
+          total: vr.total ?? {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+          },
+        }
+      : await mapItemsToMacros(
+          vr.items.map((i) => ({ name: i.name, qty: i.qty, unit: i.unit })),
+        );
 
     await prisma.mealLog.create({
       data: {
@@ -73,12 +96,18 @@ async function saveFromImage(
         mealType,
         at,
         rawText: vr.rawText.slice(0, 8000),
-        calories: total.calories,
-        protein: total.protein,
-        carbs: total.carbs,
-        fat: total.fat,
+        ocrJson: {
+          source: vr.source,
+          notes: vr.notes,
+          modelUsed: vr.modelUsed,
+          nutritionSource: vr.estimatedItems?.length ? "gemini" : "database",
+        } as Prisma.InputJsonValue,
+        calories: Math.round(nutrition.total.calories),
+        protein: nutrition.total.protein,
+        carbs: nutrition.total.carbs,
+        fat: nutrition.total.fat,
         // cast JSON safely with Prisma type (no `any`)
-        itemsJson: resolved as unknown as Prisma.InputJsonValue,
+        itemsJson: nutrition.resolved as unknown as Prisma.InputJsonValue,
       },
     });
   } catch (error) {
