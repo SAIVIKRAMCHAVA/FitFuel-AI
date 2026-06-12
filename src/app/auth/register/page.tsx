@@ -7,6 +7,7 @@ import { SEX_OPTIONS } from "@/lib/account-fields";
 export default function RegisterPage() {
   const [msg, setMsg] = useState<string>("");
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [account, setAccount] = useState({
     name: "",
     username: "",
@@ -16,6 +17,8 @@ export default function RegisterPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setIsSubmitting(true);
+    setMsg("");
     const fd = new FormData(e.currentTarget);
     const dateOfBirth = String(fd.get("dateOfBirth"));
     const sex = String(fd.get("sex"));
@@ -32,6 +35,7 @@ export default function RegisterPage() {
     } else {
       const j = await res.json().catch(() => ({}));
       setMsg(j?.error || "Failed to create account");
+      setIsSubmitting(false);
     }
   }
 
@@ -56,13 +60,15 @@ export default function RegisterPage() {
               setAccount((prev) => ({ ...prev, name: event.target.value }))
             }
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
           <input
             name="username"
             required
             minLength={3}
             maxLength={30}
-            pattern="[a-zA-Z0-9_]+"
+            pattern="[a-zA-Z0-9_.]+"
+            title="Use only letters, numbers, underscores, and periods."
             placeholder="User_name"
             value={account.username}
             onChange={(event) =>
@@ -72,6 +78,7 @@ export default function RegisterPage() {
               }))
             }
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
           <input
             name="email"
@@ -83,6 +90,7 @@ export default function RegisterPage() {
               setAccount((prev) => ({ ...prev, email: event.target.value }))
             }
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
           <input
             name="password"
@@ -95,8 +103,12 @@ export default function RegisterPage() {
               setAccount((prev) => ({ ...prev, password: event.target.value }))
             }
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
-          <button className="w-full py-2 rounded bg-black text-white">
+          <button
+            className="w-full py-2 rounded bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+          >
             Next
           </button>
         </form>
@@ -107,12 +119,14 @@ export default function RegisterPage() {
             type="date"
             required
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
           <select
             name="sex"
             required
             defaultValue=""
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           >
             <option value="" disabled>
               Sex
@@ -129,17 +143,22 @@ export default function RegisterPage() {
             max={260}
             placeholder="Height in cm"
             className="w-full p-2 rounded border border-gray-300"
+            disabled={isSubmitting}
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setStep(1)}
               className="w-full py-2 rounded border"
+              disabled={isSubmitting}
             >
               Back
             </button>
-            <button className="w-full py-2 rounded bg-black text-white">
-              Create account
+            <button
+              className="w-full py-2 rounded bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create account"}
             </button>
           </div>
         </form>

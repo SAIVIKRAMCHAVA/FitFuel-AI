@@ -1,5 +1,6 @@
 // path: src/app/log/meal/image/page.tsx
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/account";
+import { parseDateTimeLocal } from "@/lib/datetime";
 import { prisma } from "@/lib/db";
 import { analyzeMealImage } from "@/lib/vision";
 import { mapItemsToMacros } from "@/lib/nutrition";
@@ -31,11 +32,7 @@ async function saveFromImage(
 ): Promise<MealImageFormState> {
   "use server";
 
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
   // Rate limit: 5 uploads / 60s per user
@@ -47,12 +44,7 @@ async function saveFromImage(
   });
 
   const mealType = toMealType(String(formData.get("mealType") ?? "SNACK"));
-  const atRaw = String(formData.get("at") ?? "").trim();
-  const at = (() => {
-    if (!atRaw) return new Date();
-    const parsed = new Date(atRaw);
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  })();
+  const at = parseDateTimeLocal(formData.get("at"));
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) {
     return { error: "Choose a meal photo before analyzing." };
@@ -123,8 +115,8 @@ async function saveFromImage(
 }
 
 export default async function MealImageLogPage() {
-  const session = await auth();
-  if (!session?.user) {
+  const user = await getCurrentUser();
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto p-6">
         <h1 className="text-2xl font-bold mb-2">Please login</h1>

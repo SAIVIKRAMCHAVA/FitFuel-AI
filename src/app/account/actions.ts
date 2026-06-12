@@ -36,7 +36,7 @@ export async function updateProfile(formData: FormData) {
   if (!isValidUsername(username)) {
     redirectWithError(
       "/account/edit",
-      "Username must be 3-30 characters and use only letters, numbers, or underscores.",
+      "Username must be 3-30 characters and use only letters, numbers, underscores, or periods.",
     );
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

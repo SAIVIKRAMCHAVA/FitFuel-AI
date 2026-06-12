@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { deleteAccount } from "@/app/account/actions";
+import { PendingButton } from "@/components/PendingButton";
 import { getCurrentUser } from "@/lib/account";
 
 export default async function DeleteAccountPage({
@@ -44,9 +45,12 @@ export default async function DeleteAccountPage({
           >
             Cancel
           </Link>
-          <button className="w-full rounded bg-red-700 py-2 text-white">
+          <PendingButton
+            className="w-full bg-red-700 text-white hover:bg-red-800"
+            pendingText="Deleting..."
+          >
             Delete account
-          </button>
+          </PendingButton>
         </div>
       </form>
     </div>

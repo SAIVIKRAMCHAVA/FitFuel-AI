@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { calculateAge, getCurrentUser } from "@/lib/account";
 import SignOutButton from "@/app/dashboard/signout";
+import { WelcomeAuthPrompt } from "@/components/WelcomeAuthPrompt";
 
 export const revalidate = 0;
 
@@ -32,7 +32,7 @@ export default async function AccountPage({
   searchParams?: Promise<{ updated?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login");
+  if (!user) return <WelcomeAuthPrompt />;
 
   const params = await searchParams;
   const profile = user.profile;
@@ -49,7 +49,7 @@ export default async function AccountPage({
         </div>
         <Link
           href="/account/edit"
-          className="rounded bg-black px-4 py-2 text-center text-sm font-medium text-white"
+          className="rounded bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Edit details
         </Link>

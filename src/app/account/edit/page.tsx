@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { updateProfile } from "@/app/account/actions";
+import { PendingButton } from "@/components/PendingButton";
 import { getCurrentUser } from "@/lib/account";
 import { SEX_OPTIONS } from "@/lib/account-fields";
 
@@ -49,7 +50,8 @@ export default async function EditAccountPage({
           required
           minLength={3}
           maxLength={30}
-          pattern="[a-zA-Z0-9_]+"
+          pattern="[a-zA-Z0-9_.]+"
+          title="Use only letters, numbers, underscores, and periods."
           defaultValue={user.username ?? ""}
           placeholder="User_name"
           className="w-full rounded border p-2"
@@ -82,16 +84,19 @@ export default async function EditAccountPage({
             <option key={option}>{option}</option>
           ))}
         </select>
-        <input
-          name="heightCm"
-          type="number"
-          required
-          min={50}
-          max={260}
-          defaultValue={user.profile?.heightCm ?? ""}
-          placeholder="Height in cm"
-          className="w-full rounded border p-2"
-        />
+        <div className="flex items-center rounded border focus-within:ring-1 focus-within:ring-ring">
+          <input
+            name="heightCm"
+            type="number"
+            required
+            min={50}
+            max={260}
+            defaultValue={user.profile?.heightCm ?? ""}
+            placeholder="Height"
+            className="w-full rounded-l p-2 outline-none"
+          />
+          <span className="px-3 text-sm text-muted-foreground">cm</span>
+        </div>
         <div className="flex gap-2">
           <Link
             href="/account"
@@ -99,9 +104,9 @@ export default async function EditAccountPage({
           >
             Cancel
           </Link>
-          <button className="w-full rounded bg-black py-2 text-white">
+          <PendingButton className="w-full" pendingText="Saving...">
             Save details
-          </button>
+          </PendingButton>
         </div>
       </form>
     </div>

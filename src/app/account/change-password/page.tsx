@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { changePassword } from "@/app/account/actions";
+import { PendingButton } from "@/components/PendingButton";
 import { getCurrentUser } from "@/lib/account";
 
 export default async function ChangePasswordPage({
@@ -54,7 +55,7 @@ export default async function ChangePasswordPage({
           type="password"
           required
           minLength={8}
-          placeholder="Verify new password"
+          placeholder="Confirm new password"
           className="w-full rounded border p-2"
         />
         <div className="flex gap-2">
@@ -64,9 +65,9 @@ export default async function ChangePasswordPage({
           >
             Back
           </Link>
-          <button className="w-full rounded bg-black py-2 text-white">
+          <PendingButton className="w-full" pendingText="Updating...">
             Update password
-          </button>
+          </PendingButton>
         </div>
       </form>
     </div>

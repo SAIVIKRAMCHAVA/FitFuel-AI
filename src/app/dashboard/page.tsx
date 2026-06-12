@@ -1,7 +1,7 @@
 // path: src/app/dashboard/page.tsx
 export const revalidate = 0; // disable page caching for instant updates
 
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/account";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import {
@@ -12,16 +12,14 @@ import {
 } from "@/lib/stats";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/PendingButton";
+import { WelcomeAuthPrompt } from "@/components/WelcomeAuthPrompt";
 import Link from "next/link";
 
 // Quick "+250ml" action
 async function addWater250() {
   "use server";
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
   await prisma.waterLog.create({
@@ -32,31 +30,8 @@ async function addWater250() {
 }
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return (
-      <div className="max-w-lg mx-auto py-24 text-center space-y-4">
-        <h1 className="text-3xl font-bold">Welcome to FitFuel AI</h1>
-        <p className="text-muted-foreground">
-          Track meals, water and weight - then get a weekly plan powered by AI.
-        </p>
-        <div className="flex gap-2 justify-center">
-          <Link href="/auth/login">
-            <Button>Login</Button>
-          </Link>
-          <Link href="/auth/register">
-            <Button variant="secondary">Create account</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!user) redirect("/auth/login");
+  const user = await getCurrentUser();
+  if (!user) return <WelcomeAuthPrompt />;
 
   // Fresh values every request (no cache)
   const [meals, water, body, plan] = await Promise.all([
@@ -94,7 +69,7 @@ export default async function DashboardPage() {
           title="Today's Calories"
           value={`${meals.calories} kcal`}
           footer={`P ${Math.round(meals.protein)} / C ${Math.round(
-            meals.carbs
+            meals.carbs,
           )} / F ${Math.round(meals.fat)}`}
         />
         <StatCard
@@ -102,9 +77,13 @@ export default async function DashboardPage() {
           value={`${water} ml`}
           footer={
             <form action={addWater250}>
-              <Button variant="link" className="h-auto p-0">
+              <PendingButton
+                variant="link"
+                className="h-auto p-0"
+                pendingText="Adding..."
+              >
                 +250 ml
-              </Button>
+              </PendingButton>
             </form>
           }
         />
@@ -154,4 +133,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-

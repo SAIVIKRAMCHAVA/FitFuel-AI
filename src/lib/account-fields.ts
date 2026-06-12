@@ -9,7 +9,7 @@ export function normalizeEmail(value: string) {
 }
 
 export function isValidUsername(value: string) {
-  return /^[a-z0-9_]{3,30}$/.test(value);
+  return /^[a-z0-9_.]{3,30}$/.test(value);
 }
 
 export function calculateAge(dateOfBirth: Date | string | null | undefined) {

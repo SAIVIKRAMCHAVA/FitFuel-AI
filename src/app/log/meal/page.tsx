@@ -1,9 +1,11 @@
 // path: src/app/log/meal/page.tsx
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { mapItemsToMacros } from "@/lib/nutrition";
 import { requireUserId } from "@/lib/user";
 import { parseItemsFromText } from "@/lib/parse";
+import { parseDateTimeLocal } from "@/lib/datetime";
+import { PendingButton } from "@/components/PendingButton";
+import { getCurrentUser } from "@/lib/account";
 import { redirect } from "next/navigation";
 
 // Keep the action outside the component to avoid "session possibly null" TS issues.
@@ -13,7 +15,7 @@ async function createMeal(formData: FormData) {
   if (!userId) redirect("/auth/login");
 
   const mealType = String(formData.get("mealType") || "SNACK");
-  const atStr = String(formData.get("at") || new Date().toISOString());
+  const at = parseDateTimeLocal(formData.get("at"));
   const text = String(formData.get("text") || "").trim();
   if (!text) return;
 
@@ -24,7 +26,7 @@ async function createMeal(formData: FormData) {
     data: {
       userId,
       mealType: mealType as any,
-      at: new Date(atStr),
+      at,
       rawText: text,
       calories: total.calories,
       protein: total.protein,
@@ -38,8 +40,8 @@ async function createMeal(formData: FormData) {
 }
 
 export default async function MealLogPage() {
-  const session = await auth();
-  if (!session?.user) {
+  const user = await getCurrentUser();
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto p-6">
         <h1 className="text-2xl font-bold mb-2">Please login</h1>
@@ -72,9 +74,7 @@ export default async function MealLogPage() {
           className="w-full p-2 border rounded"
           required
         />
-        <button className="px-4 py-2 rounded bg-black text-white" type="submit">
-          Save
-        </button>
+        <PendingButton pendingText="Saving...">Save</PendingButton>
       </form>
       <p className="text-sm text-gray-600">
         After saving you'll be redirected to <code>/meals</code>.

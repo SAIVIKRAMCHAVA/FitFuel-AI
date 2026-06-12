@@ -1,4 +1,5 @@
 // path: src/app/log/weight/page.tsx
+import { PendingButton } from "@/components/PendingButton";
 import { getCurrentUser } from "@/lib/account";
 import { bmi } from "@/lib/bmi";
 import { prisma } from "@/lib/db";
@@ -78,13 +79,14 @@ export default async function WeightLogPage() {
           Height used for this entry:{" "}
           {heightCm ? `${heightCm} cm from your profile` : "not set"}
         </p>
-        <button
-          className="px-4 py-2 rounded bg-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+        <PendingButton
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
           type="submit"
           disabled={!heightCm}
+          pendingText="Saving..."
         >
           Save
-        </button>
+        </PendingButton>
       </form>
 
       <a className="underline inline-block" href="/weight/history">

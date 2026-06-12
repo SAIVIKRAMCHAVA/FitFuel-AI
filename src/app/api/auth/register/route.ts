@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Username must be 3-30 characters and use only letters, numbers, or underscores.",
+            "Username must be 3-30 characters and use only letters, numbers, underscores, or periods.",
         },
         { status: 400 },
       );

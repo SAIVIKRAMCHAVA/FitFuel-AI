@@ -73,7 +73,7 @@ export function MealImageForm({ action }: MealImageFormProps) {
         </p>
       )}
       <button
-        className="px-4 py-2 rounded bg-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         disabled={isPending}
       >

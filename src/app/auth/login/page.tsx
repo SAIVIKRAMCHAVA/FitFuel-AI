@@ -6,9 +6,12 @@ import { useState } from "react";
 
 export default function LoginPage() {
   const [msg, setMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setIsSubmitting(true);
+    setMsg("");
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email"));
     const password = String(fd.get("password"));
@@ -19,7 +22,10 @@ export default function LoginPage() {
       callbackUrl: "/dashboard",
     });
     if (res?.ok) window.location.href = "/dashboard";
-    else setMsg("Invalid email or password");
+    else {
+      setMsg("Invalid email or password");
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -32,6 +38,7 @@ export default function LoginPage() {
           required
           placeholder="Email"
           className="w-full p-2 rounded border border-gray-300"
+          disabled={isSubmitting}
         />
         <input
           name="password"
@@ -39,9 +46,13 @@ export default function LoginPage() {
           required
           placeholder="Password"
           className="w-full p-2 rounded border border-gray-300"
+          disabled={isSubmitting}
         />
-        <button className="w-full py-2 rounded bg-black text-white">
-          Login
+        <button
+          className="w-full py-2 rounded bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Logging in..." : "Login"}
         </button>
       </form>
       {msg && <p className="mt-3 text-sm">{msg}</p>}

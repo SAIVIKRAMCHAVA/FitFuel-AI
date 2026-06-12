@@ -1,10 +1,10 @@
 // path: src/app/plan/page.tsx
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import WeeklyPlanView from "@/components/WeeklyPlanView";
 import { getOrCreateWeeklyPlan, startOfThisWeekMonday } from "@/lib/plan";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/PendingButton";
+import { getCurrentUser } from "@/lib/account";
 import { enforceRateLimit } from "@/lib/ratelimit";
 import type { Plan } from "@/lib/plan";
 
@@ -48,11 +48,7 @@ function normalizePlanDatesFromWeekStart(plan: any): any {
 async function generateAction() {
   "use server";
 
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
   // Rate limit: 2 generations / 10 min per user
@@ -69,13 +65,17 @@ async function generateAction() {
 
 /* -------------------- Page -------------------- */
 export default async function PlanPage() {
-  const session = await auth();
-  if (!session?.user?.email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-  if (!user) redirect("/auth/login");
+  const user = await getCurrentUser();
+  if (!user) {
+    return (
+      <div className="max-w-lg mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-2">Please login</h1>
+        <a className="underline" href="/auth/login">
+          Go to Login
+        </a>
+      </div>
+    );
+  }
 
   const weekStart = startOfThisWeekMonday();
 
@@ -95,7 +95,9 @@ export default async function PlanPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">This Week's Diet Plan</h1>
         <form action={generateAction}>
-          <Button type="submit">Generate / Refresh Plan</Button>
+          <PendingButton type="submit" pendingText="Generating...">
+            Generate / Refresh Plan
+          </PendingButton>
         </form>
       </div>
 
@@ -109,4 +111,3 @@ export default async function PlanPage() {
     </div>
   );
 }
-

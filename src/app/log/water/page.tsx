@@ -1,5 +1,7 @@
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/account";
+import { formatDateTimeIST } from "@/lib/datetime";
 import { prisma } from "@/lib/db";
+import { PendingButton } from "@/components/PendingButton";
 import { redirect } from "next/navigation";
 
 type WaterRow = { id: string; at: Date; ml: number };
@@ -17,14 +19,7 @@ async function getLast24hTotal(userId: string) {
 
 async function addWater(formData: FormData) {
   "use server";
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
   const ml = Number(formData.get("ml") || 0);
@@ -38,8 +33,8 @@ async function addWater(formData: FormData) {
 }
 
 export default async function WaterLogPage() {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const user = await getCurrentUser();
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto p-6">
         <h1 className="text-2xl font-bold mb-2">Please login</h1>
@@ -49,13 +44,6 @@ export default async function WaterLogPage() {
       </div>
     );
   }
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!user) {
-    return <div className="max-w-lg mx-auto p-6">User not found.</div>;
-  }
 
   const { total, logs } = await getLast24hTotal(user.id);
 
@@ -64,7 +52,7 @@ export default async function WaterLogPage() {
       <h1 className="text-2xl font-bold">Log Water</h1>
 
       <div className="p-4 border rounded">
-        <p className="text-sm text-gray-600 mb-2">Last 24h total</p>
+        <p className="text-sm text-muted-foreground mb-2">Last 24h total</p>
         <p className="text-3xl font-semibold">{total} ml</p>
       </div>
 
@@ -78,18 +66,20 @@ export default async function WaterLogPage() {
           className="w-full p-2 border rounded"
           required
         />
-        <button type="submit" className="px-4 py-2 rounded bg-black text-white">
-          Add water
-        </button>
+        <PendingButton pendingText="Adding...">Add water</PendingButton>
       </form>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {[250, 500, 750, 1000].map((amt) => (
           <form action={addWater} key={amt} style={{ display: "inline" }}>
             <input type="hidden" name="ml" value={amt} />
-            <button className="px-3 py-2 border rounded" type="submit">
+            <PendingButton
+              variant="outline"
+              pendingText="Adding..."
+              type="submit"
+            >
               + {amt} ml
-            </button>
+            </PendingButton>
           </form>
         ))}
       </div>
@@ -107,7 +97,7 @@ export default async function WaterLogPage() {
             <tbody>
               {logs.map((r) => (
                 <tr key={r.id} className="border-b">
-                  <td className="py-2 pr-4">{new Date(r.at).toLocaleString()}</td>
+                  <td className="py-2 pr-4">{formatDateTimeIST(r.at)}</td>
                   <td className="py-2 pr-4">{r.ml} ml</td>
                 </tr>
               ))}
@@ -123,7 +113,14 @@ export default async function WaterLogPage() {
         </div>
       </div>
 
-      <a className="underline inline-block" href="/dashboard">Back to dashboard</a>
+      <div className="flex gap-4">
+        <a className="underline inline-block" href="/water/history">
+          View history
+        </a>
+        <a className="underline inline-block" href="/dashboard">
+          Back to dashboard
+        </a>
+      </div>
     </div>
   );
 }
