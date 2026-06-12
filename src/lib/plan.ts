@@ -51,7 +51,7 @@ const loadContext = cache(
       0,
       0,
       0,
-      0
+      0,
     );
 
     const [profile, weight, meals, waters] = await Promise.all([
@@ -70,9 +70,10 @@ const loadContext = cache(
       }),
     ]);
 
-    const h = profile?.heightCm ?? null;
+    const h = weight?.heightCm ?? profile?.heightCm ?? null;
     const w = weight?.weightKg ?? null;
-    const bmi = h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null;
+    const bmi =
+      weight?.bmi ?? (h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null);
 
     const mealAgg = meals?.[0];
     const waterAgg = waters?.[0];
@@ -109,7 +110,7 @@ const loadContext = cache(
     };
   },
   ["plan_context"],
-  { revalidate: 3600 }
+  { revalidate: 3600 },
 );
 
 function buildPrompt(ctx: Awaited<ReturnType<typeof loadContext>>) {
@@ -117,15 +118,15 @@ function buildPrompt(ctx: Awaited<ReturnType<typeof loadContext>>) {
     ctx.bmi && ctx.bmi < 18.5
       ? "gain_slight"
       : ctx.bmi && ctx.bmi > 24.9
-      ? "lose_slight"
-      : "recomp";
+        ? "lose_slight"
+        : "recomp";
   const calsBase = ctx.avgCalories || 2000;
   const targetCalories =
     goal === "gain_slight"
       ? calsBase + 300
       : goal === "lose_slight"
-      ? Math.max(1400, calsBase - 300)
-      : calsBase;
+        ? Math.max(1400, calsBase - 300)
+        : calsBase;
 
   return `You are a nutrition planner for an Indian user (Hyderabad). Create a 7-day diet plan optimized for ${goal}.
 Use South Indian staples where possible (rice, dosa, idli, dal, curd, vegetables, eggs, chicken/prawns occasionally).

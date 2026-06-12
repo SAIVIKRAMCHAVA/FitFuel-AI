@@ -1,32 +1,22 @@
 // path: src/app/weight/history/page.tsx
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/account";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
 
 export default async function WeightHistoryPage() {
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, profile: { select: { heightCm: true } } },
-  });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
-  // We use the WeighIn model (not weightLog)
   const logs = await prisma.weighIn.findMany({
     where: { userId: user.id },
     orderBy: { at: "desc" },
     take: 100,
   });
 
-  const currentHeight = user.profile?.heightCm ?? null;
-
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">Weight history</h1>
 
       {logs.length === 0 ? (
@@ -45,32 +35,28 @@ export default async function WeightHistoryPage() {
                 <th className="text-left p-3 font-medium">When</th>
                 <th className="text-left p-3 font-medium">Weight (kg)</th>
                 <th className="text-left p-3 font-medium">Height (cm)</th>
+                <th className="text-left p-3 font-medium">BMI</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map(
-                (r: { id: string; at: Date; weightKg: number | null }) => {
-                  const when = new Date(r.at).toLocaleString("en-IN", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                    timeZone: "Asia/Kolkata",
-                  });
-                  return (
-                    <tr
-                      key={r.id}
-                      className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="p-3 whitespace-nowrap">{when}</td>
-                      <td className="p-3">
-                        {typeof r.weightKg === "number"
-                          ? r.weightKg.toFixed(1)
-                          : "-"}
-                      </td>
-                      <td className="p-3">{currentHeight ?? "-"}</td>
-                    </tr>
-                  );
-                }
-              )}
+              {logs.map((r) => {
+                const when = new Date(r.at).toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                  timeZone: "Asia/Kolkata",
+                });
+                return (
+                  <tr
+                    key={r.id}
+                    className="odd:bg-card even:bg-muted/40 border-t hover:bg-muted/50 transition-colors"
+                  >
+                    <td className="p-3 whitespace-nowrap">{when}</td>
+                    <td className="p-3">{r.weightKg.toFixed(1)}</td>
+                    <td className="p-3">{r.heightCm ?? "-"}</td>
+                    <td className="p-3">{r.bmi?.toFixed(1) ?? "-"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

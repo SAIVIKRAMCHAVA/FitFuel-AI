@@ -98,6 +98,8 @@ model WeighIn {
   user      User     @relation(fields: [userId], references: [id])
   at        DateTime
   weightKg  Float
+  heightCm  Int?
+  bmi       Float?
   createdAt DateTime @default(now())
 
   @@index([userId, at], map: "WeighIn_userId_at_idx")

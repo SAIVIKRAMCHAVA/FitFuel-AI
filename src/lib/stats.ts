@@ -37,13 +37,14 @@ export async function getWaterLast24h(userId: string) {
 }
 
 export async function getCurrentBmi(userId: string) {
-  const [profile, latest] = await Promise.all([
-    prisma.profile.findUnique({ where: { userId } }),
-    prisma.weighIn.findFirst({ where: { userId }, orderBy: { at: "desc" } }),
-  ]);
-  const h = profile?.heightCm ?? null;
+  const latest = await prisma.weighIn.findFirst({
+    where: { userId },
+    orderBy: { at: "desc" },
+  });
+  const h = latest?.heightCm ?? null;
   const w = latest?.weightKg ?? null;
-  const value = h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null;
+  const value =
+    latest?.bmi ?? (h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null);
   return {
     bmi: value,
     heightCm: h,

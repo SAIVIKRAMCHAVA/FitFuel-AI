@@ -1,46 +1,43 @@
 // path: src/app/log/weight/page.tsx
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/account";
+import { bmi } from "@/lib/bmi";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 async function saveWeighIn(formData: FormData) {
   "use server";
 
-  const session = await auth();
-  const email = session?.user?.email;
-  if (!email) redirect("/auth/login");
-
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
-  // height (optional)
-  const heightCm = formData.get("heightCm");
-  if (heightCm) {
-    const h = Number(heightCm);
-    if (Number.isFinite(h) && h > 0) {
-      await prisma.profile.upsert({
-        where: { userId: user.id },
-        update: { heightCm: Math.round(h) },
-        create: { userId: user.id, heightCm: Math.round(h) },
-      });
-    }
+  const heightCm = user.profile?.heightCm ?? null;
+  if (!heightCm) {
+    redirect(
+      `/account/edit?error=${encodeURIComponent(
+        "Set your height before logging weight.",
+      )}`,
+    );
   }
 
-  // weight (required)
   const weightKg = Number(formData.get("weightKg") || 0);
   if (Number.isFinite(weightKg) && weightKg > 0) {
     await prisma.weighIn.create({
-      data: { userId: user.id, at: new Date(), weightKg },
+      data: {
+        userId: user.id,
+        at: new Date(),
+        weightKg,
+        heightCm,
+        bmi: bmi(weightKg, heightCm),
+      },
     });
   }
 
-  // go to the production-safe history page
   redirect("/weight/history");
 }
 
 export default async function WeightLogPage() {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const user = await getCurrentUser();
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto p-6">
         <h1 className="text-2xl font-bold mb-2">Please login</h1>
@@ -51,14 +48,21 @@ export default async function WeightLogPage() {
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true, profile: true },
-  });
+  const heightCm = user.profile?.heightCm ?? null;
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">Log Weight</h1>
+
+      {!heightCm && (
+        <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Set your height on the{" "}
+          <a href="/account/edit" className="underline">
+            profile edit page
+          </a>{" "}
+          before logging weight.
+        </p>
+      )}
 
       <form action={saveWeighIn} className="space-y-3">
         <input
@@ -70,26 +74,22 @@ export default async function WeightLogPage() {
           className="w-full p-2 border rounded"
           required
         />
-        <input
-          name="heightCm"
-          type="number"
-          step="1"
-          min="50"
-          placeholder={`Height (cm)${
-            user?.profile?.heightCm ? ` (current ${user.profile.heightCm} cm)` : ""
-          }`}
-          className="w-full p-2 border rounded"
-        />
-        <button className="px-4 py-2 rounded bg-black text-white" type="submit">
+        <p className="text-sm text-muted-foreground">
+          Height used for this entry:{" "}
+          {heightCm ? `${heightCm} cm from your profile` : "not set"}
+        </p>
+        <button
+          className="px-4 py-2 rounded bg-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+          type="submit"
+          disabled={!heightCm}
+        >
           Save
         </button>
       </form>
 
-      {/* Updated link */}
       <a className="underline inline-block" href="/weight/history">
         View history
       </a>
     </div>
   );
 }
-
