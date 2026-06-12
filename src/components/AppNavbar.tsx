@@ -53,7 +53,7 @@ export default function AppNavbar() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/auth/login">
+          <Link href="/account">
             <Button size="sm" variant="secondary">
               Account
             </Button>
