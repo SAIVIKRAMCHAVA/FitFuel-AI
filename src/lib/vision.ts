@@ -1,5 +1,5 @@
 // path: src/lib/vision.ts
-import { getGemini } from "@/lib/gemini";
+import { getGeminiGenerativeModel } from "@/lib/gemini";
 import { parseItemsFromText, ParsedItem } from "@/lib/parse";
 
 type VisionResult = {
@@ -26,14 +26,14 @@ function safeParseItems(jsonText: string): ParsedItem[] | null {
 
 export async function analyzeMealImage(
   bytes: Buffer,
-  mime: string
+  mime: string,
 ): Promise<VisionResult> {
-  const gemini = getGemini();
+  const gemini = getGeminiGenerativeModel();
 
   // --- Prefer Google Gemini Vision ---
   if (gemini) {
-    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `You are a nutrition extractor for Indian meals.
+    try {
+      const prompt = `You are a nutrition extractor for Indian meals.
 Return STRICT JSON ONLY in this exact shape (no prose, no markdown):
 {"items":[{"name":"Chapati","qty":2,"unit":"piece"},{"name":"Dal","qty":150,"unit":"g"}],"notes":"optional"}
 
@@ -44,15 +44,18 @@ Rules:
 - If unsure, set qty=1 and unit="piece".
 - Output must be valid JSON and nothing else.`;
 
-    const base64 = bytes.toString("base64");
-    const result = await model.generateContent([
-      { text: prompt },
-      { inlineData: { data: base64, mimeType: mime } } as any,
-    ]);
+      const base64 = bytes.toString("base64");
+      const result = await gemini.model.generateContent([
+        { text: prompt },
+        { inlineData: { data: base64, mimeType: mime } } as any,
+      ]);
 
-    const text = result.response.text() ?? "";
-    const items = safeParseItems(text) ?? parseItemsFromText(text);
-    return { rawText: text, items, source: "gemini" };
+      const text = result.response.text() ?? "";
+      const items = safeParseItems(text) ?? parseItemsFromText(text);
+      return { rawText: text, items, source: "gemini" };
+    } catch (error) {
+      console.error("Gemini image analysis failed; using OCR fallback.", error);
+    }
   }
 
   // --- Fallback: Tesseract OCR ---
@@ -68,4 +71,3 @@ Rules:
   const items = parseItemsFromText(raw);
   return { rawText: raw, items, source: "tesseract" };
 }
-

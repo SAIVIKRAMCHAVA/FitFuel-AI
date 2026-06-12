@@ -44,38 +44,45 @@ This project is part of my portfolio. If you’re a recruiter or hiring manager,
 ## Getting Started (Local)
 
 Prerequisites
+
 - Node 20+
 - pnpm 10+
 - PostgreSQL (local or cloud)
 
-1) Clone & install
+1. Clone & install
+
 ```bash
 pnpm install
 ```
 
-2) Create `.env`
+2. Create `.env`
+
 ```bash
 DATABASE_URL="postgresql://user:password@localhost:5432/fitfuel"
 AUTH_SECRET="complex-long-random-string"
 # Optional
 NEXTAUTH_URL="http://localhost:3000"
 GEMINI_API_KEY=""  # set to enable AI features; otherwise OCR fallback is used
+GEMINI_MODEL="gemini-3.5-flash" # optional; defaults to this if omitted
 ```
 
-3) Generate & migrate Prisma
+3. Generate & migrate Prisma
+
 ```bash
 pnpm prisma:generate
 pnpm prisma:migrate
 pnpm db:seed          # loads a small Indian foods table
 ```
 
-4) Run
+4. Run
+
 ```bash
 pnpm dev
 # open http://localhost:3000
 ```
 
-5) Tests & checks
+5. Tests & checks
+
 ```bash
 pnpm typecheck
 pnpm lint
