@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { aiJSON } from "@/lib/ai";
-import { unstable_cache as cache } from "next/cache";
 
 export const MealSchema = z.object({
   name: z.string(),
@@ -28,6 +27,27 @@ export const PlanSchema = z.object({
 
 export type Plan = z.infer<typeof PlanSchema>;
 
+const HISTORY_DAYS = 90;
+const HISTORY_DAY_MS = 24 * 60 * 60 * 1000;
+
+type PlanGoal = "gain_slight" | "lose_slight" | "recomp";
+
+type MealHistoryRow = {
+  at: Date;
+  mealType: string;
+  rawText: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  itemsJson: unknown;
+};
+
+type WaterHistoryRow = {
+  at: Date;
+  ml: number;
+};
+
 function mondayOf(d: Date) {
   const day = d.getDay(); // Sun=0..Sat=6
   const diff = day === 0 ? -6 : 1 - day;
@@ -41,85 +61,222 @@ export function startOfThisWeekMonday(): Date {
   return mondayOf(new Date());
 }
 
-const loadContext = cache(
-  async (userId: string) => {
-    const now = new Date();
-    const start = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() - 6,
-      0,
-      0,
-      0,
-      0,
-    );
+const istDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-    const [profile, weight, meals, waters] = await Promise.all([
-      prisma.profile.findUnique({ where: { userId } }),
-      prisma.weighIn.findFirst({ where: { userId }, orderBy: { at: "desc" } }),
-      prisma.mealLog.groupBy({
-        by: ["userId"],
-        where: { userId, at: { gte: start, lte: now } },
-        _sum: { calories: true, protein: true, carbs: true, fat: true },
-        _count: { _all: true },
-      }),
-      prisma.waterLog.groupBy({
-        by: ["userId"],
-        where: { userId, at: { gte: start, lte: now } },
-        _sum: { ml: true },
-      }),
-    ]);
+function dayKeyIST(date: Date) {
+  const parts = istDayFormatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
 
-    const h = weight?.heightCm ?? profile?.heightCm ?? null;
-    const w = weight?.weightKg ?? null;
-    const bmi =
-      weight?.bmi ?? (h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null);
+function round1(value: number) {
+  return +value.toFixed(1);
+}
 
-    const mealAgg = meals?.[0];
-    const waterAgg = waters?.[0];
+function summarizeMealItems(itemsJson: unknown, rawText: string | null) {
+  if (Array.isArray(itemsJson)) {
+    const itemNames = itemsJson
+      .map((item) => {
+        if (!item || typeof item !== "object") return "";
+        const name = (item as { name?: unknown }).name;
+        return typeof name === "string" ? name.trim() : "";
+      })
+      .filter(Boolean);
 
-    const daysCount = 7;
-    const avgCalories = mealAgg
-      ? Math.round((mealAgg._sum.calories ?? 0) / Math.max(1, daysCount))
-      : 0;
-    const avgProtein = mealAgg
-      ? +((mealAgg._sum.protein ?? 0) / Math.max(1, daysCount)).toFixed(1)
-      : 0;
-    const avgCarbs = mealAgg
-      ? +((mealAgg._sum.carbs ?? 0) / Math.max(1, daysCount)).toFixed(1)
-      : 0;
-    const avgFat = mealAgg
-      ? +((mealAgg._sum.fat ?? 0) / Math.max(1, daysCount)).toFixed(1)
-      : 0;
+    if (itemNames.length > 0) return itemNames.slice(0, 6).join(", ");
+  }
 
-    const avgWaterMl = waterAgg
-      ? Math.round((waterAgg._sum.ml ?? 0) / Math.max(1, daysCount))
-      : 0;
-    const waterTargetMl = w ? Math.round(w * 35) : 2500; // 35 ml per kg
+  return rawText?.replace(/\s+/g, " ").slice(0, 140) || "Meal";
+}
 
-    return {
-      bmi,
-      heightCm: h,
-      weightKg: w,
-      avgCalories,
-      avgProtein,
-      avgCarbs,
-      avgFat,
-      avgWaterMl,
-      waterTargetMl,
-    };
-  },
-  ["plan_context"],
-  { revalidate: 3600 },
-);
+function summarizeMealHistory(meals: MealHistoryRow[]) {
+  const days = new Map<
+    string,
+    {
+      date: string;
+      meals: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }
+  >();
+
+  for (const meal of meals) {
+    const date = dayKeyIST(meal.at);
+    const existing =
+      days.get(date) ??
+      ({
+        date,
+        meals: 0,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      } satisfies {
+        date: string;
+        meals: number;
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      });
+
+    existing.meals += 1;
+    existing.calories += meal.calories;
+    existing.protein += meal.protein;
+    existing.carbs += meal.carbs;
+    existing.fat += meal.fat;
+    days.set(date, existing);
+  }
+
+  return Array.from(days.values()).map((day) => ({
+    ...day,
+    calories: Math.round(day.calories),
+    protein: round1(day.protein),
+    carbs: round1(day.carbs),
+    fat: round1(day.fat),
+  }));
+}
+
+function summarizeWaterHistory(waters: WaterHistoryRow[]) {
+  const days = new Map<string, { date: string; ml: number; entries: number }>();
+
+  for (const water of waters) {
+    const date = dayKeyIST(water.at);
+    const existing = days.get(date) ?? { date, ml: 0, entries: 0 };
+    existing.ml += water.ml;
+    existing.entries += 1;
+    days.set(date, existing);
+  }
+
+  return Array.from(days.values()).map((day) => ({
+    ...day,
+    ml: Math.round(day.ml),
+  }));
+}
+
+export function resolvePlanGoal(
+  goalText: string | null | undefined,
+  bmi: number | null | undefined,
+): PlanGoal {
+  const normalized = goalText?.toLowerCase() ?? "";
+
+  if (/\b(lose|loss|reduce|cut|slim|fat loss|weight loss)\b/.test(normalized)) {
+    return "lose_slight";
+  }
+
+  if (
+    /\b(gain|bulk|put on|increase weight|muscle|strength|mass)\b/.test(
+      normalized,
+    )
+  ) {
+    return "gain_slight";
+  }
+
+  if (bmi && bmi < 18.5) return "gain_slight";
+  if (bmi && bmi > 24.9) return "lose_slight";
+  return "recomp";
+}
+
+async function loadContext(userId: string) {
+  const now = new Date();
+  const start = new Date(now.getTime() - (HISTORY_DAYS - 1) * HISTORY_DAY_MS);
+
+  const [profile, weight, mealLogs, waterLogs] = await Promise.all([
+    prisma.profile.findUnique({ where: { userId } }),
+    prisma.weighIn.findFirst({ where: { userId }, orderBy: { at: "desc" } }),
+    prisma.mealLog.findMany({
+      where: { userId, at: { gte: start, lte: now } },
+      orderBy: { at: "asc" },
+      select: {
+        at: true,
+        mealType: true,
+        rawText: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true,
+        itemsJson: true,
+      },
+    }),
+    prisma.waterLog.findMany({
+      where: { userId, at: { gte: start, lte: now } },
+      orderBy: { at: "asc" },
+      select: { at: true, ml: true },
+    }),
+  ]);
+
+  const h = weight?.heightCm ?? profile?.heightCm ?? null;
+  const w = weight?.weightKg ?? null;
+  const bmi =
+    weight?.bmi ?? (h && w ? +(w / Math.pow(h / 100, 2)).toFixed(1) : null);
+
+  const mealHistory = summarizeMealHistory(mealLogs);
+  const waterHistory = summarizeWaterHistory(waterLogs);
+  const mealDaysCount = Math.max(1, mealHistory.length);
+  const waterDaysCount = Math.max(1, waterHistory.length);
+
+  const mealTotals = mealHistory.reduce(
+    (total, day) => ({
+      calories: total.calories + day.calories,
+      protein: total.protein + day.protein,
+      carbs: total.carbs + day.carbs,
+      fat: total.fat + day.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+
+  const waterTotalMl = waterHistory.reduce((total, day) => total + day.ml, 0);
+  const recentMeals = mealLogs.slice(-30).map((meal) => ({
+    date: dayKeyIST(meal.at),
+    type: meal.mealType,
+    items: summarizeMealItems(meal.itemsJson, meal.rawText),
+    calories: Math.round(meal.calories),
+    protein: round1(meal.protein),
+    carbs: round1(meal.carbs),
+    fat: round1(meal.fat),
+  }));
+
+  const avgCalories = Math.round(mealTotals.calories / mealDaysCount);
+  const avgProtein = round1(mealTotals.protein / mealDaysCount);
+  const avgCarbs = round1(mealTotals.carbs / mealDaysCount);
+  const avgFat = round1(mealTotals.fat / mealDaysCount);
+  const avgWaterMl = Math.round(waterTotalMl / waterDaysCount);
+  const waterTargetMl = w ? Math.round(w * 35) : 2500; // 35 ml per kg
+
+  return {
+    goalText: profile?.goal?.trim() ?? "",
+    bmi,
+    heightCm: h,
+    weightKg: w,
+    latestWeightAt: weight?.at ?? null,
+    avgCalories,
+    avgProtein,
+    avgCarbs,
+    avgFat,
+    avgWaterMl,
+    waterTargetMl,
+    historyDays: HISTORY_DAYS,
+    mealLogCount: mealLogs.length,
+    mealLoggedDays: mealHistory.length,
+    waterLogCount: waterLogs.length,
+    waterLoggedDays: waterHistory.length,
+    mealHistory,
+    recentMeals,
+    waterHistory,
+  };
+}
 
 function buildPrompt(ctx: Awaited<ReturnType<typeof loadContext>>) {
-  const goal =
-    ctx.bmi && ctx.bmi < 18.5
-      ? "gain_slight"
-      : ctx.bmi && ctx.bmi > 24.9
-        ? "lose_slight"
-        : "recomp";
+  const goal = resolvePlanGoal(ctx.goalText, ctx.bmi);
   const calsBase = ctx.avgCalories || 2000;
   const targetCalories =
     goal === "gain_slight"
@@ -128,20 +285,37 @@ function buildPrompt(ctx: Awaited<ReturnType<typeof loadContext>>) {
         ? Math.max(1400, calsBase - 300)
         : calsBase;
 
-  return `You are a nutrition planner for an Indian user (Hyderabad). Create a 7-day diet plan optimized for ${goal}.
+  return `You are a nutrition planner for an Indian user (Hyderabad). Create a 7-day diet plan optimized for the user's written goal and the inferred strategy "${goal}".
+User-written goal: ${ctx.goalText || "No written goal saved."}
 Use South Indian staples where possible (rice, dosa, idli, dal, curd, vegetables, eggs, chicken/prawns occasionally).
 Consider:
-- BMI: ${ctx.bmi ?? "unknown"} (height ${ctx.heightCm ?? "?"} cm, weight ${
+- Recent body stats: BMI ${ctx.bmi ?? "unknown"} (height ${
+    ctx.heightCm ?? "?"
+  } cm, weight ${
     ctx.weightKg ?? "?"
-  } kg)
-- Recent daily averages (last 7 days): calories ${
+  } kg, latest weight logged ${ctx.latestWeightAt?.toISOString() ?? "unknown"})
+- Diet history summary (last ${
+    ctx.historyDays
+  } days): ${ctx.mealLogCount} meals across ${
+    ctx.mealLoggedDays
+  } logged days; daily averages on logged days: calories ${
     ctx.avgCalories
   } kcal, protein ${ctx.avgProtein} g, carbs ${ctx.avgCarbs} g, fat ${
     ctx.avgFat
   } g
-- Water: avg ${ctx.avgWaterMl} ml/day vs target ${ctx.waterTargetMl} ml/day
+- Diet daily totals (compact JSON): ${JSON.stringify(ctx.mealHistory)}
+- Recent meal examples (compact JSON): ${JSON.stringify(ctx.recentMeals)}
+- Water history summary (last ${
+    ctx.historyDays
+  } days): ${ctx.waterLogCount} entries across ${
+    ctx.waterLoggedDays
+  } logged days; avg ${ctx.avgWaterMl} ml/day on logged days vs target ${
+    ctx.waterTargetMl
+  } ml/day
+- Water daily totals (compact JSON): ${JSON.stringify(ctx.waterHistory)}
 
 Rules:
+- Treat the user-written goal as the main goal unless it conflicts with basic safety.
 - 7 days, each with breakfast, lunch, dinner, plus 1-2 snacks.
 - Use diverse items from typical Indian foods (idli, dosa, upma, poha, sambar, dal, rice, chapati, curd, paneer, veggies, eggs, chicken, fish, prawns, fruits, nuts).
 - Portion sizes must be realistic for an adult.
@@ -154,12 +328,15 @@ Also include a short "notes" field with hydration advice comparing ${
   } ml to the ${ctx.waterTargetMl} ml target.`;
 }
 
-export async function getOrCreateWeeklyPlan(userId: string) {
+export async function getOrCreateWeeklyPlan(
+  userId: string,
+  options: { refresh?: boolean } = {},
+) {
   const weekStart = startOfThisWeekMonday();
   const existing = await prisma.weeklyPlan.findUnique({
     where: { userId_weekStart: { userId, weekStart } },
   });
-  if (existing) return existing;
+  if (existing && !options.refresh) return existing;
 
   const ctx = await loadContext(userId);
   const prompt = buildPrompt(ctx);
@@ -206,14 +383,24 @@ export async function getOrCreateWeeklyPlan(userId: string) {
 
   const parsed = PlanSchema.parse(json);
 
-  const created = await prisma.weeklyPlan.create({
+  const data = {
+    planJson: parsed as any,
+    modelUsed: parsed.modelUsed ?? modelUsed,
+    notes: parsed.notes ?? null,
+  };
+
+  if (existing) {
+    return prisma.weeklyPlan.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return prisma.weeklyPlan.create({
     data: {
       userId,
       weekStart,
-      planJson: parsed as any,
-      modelUsed: parsed.modelUsed ?? modelUsed,
-      notes: parsed.notes ?? null,
+      ...data,
     },
   });
-  return created;
 }

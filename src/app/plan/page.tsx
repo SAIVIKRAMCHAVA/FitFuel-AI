@@ -6,6 +6,7 @@ import { getOrCreateWeeklyPlan, startOfThisWeekMonday } from "@/lib/plan";
 import { PendingButton } from "@/components/PendingButton";
 import { getCurrentUser } from "@/lib/account";
 import { enforceRateLimit } from "@/lib/ratelimit";
+import { PlanGoalForm } from "./PlanGoalForm";
 import type { Plan } from "@/lib/plan";
 
 export const revalidate = 0;
@@ -59,12 +60,40 @@ async function generateAction() {
     userId: user.id,
   });
 
-  await getOrCreateWeeklyPlan(user.id);
+  await getOrCreateWeeklyPlan(user.id, { refresh: true });
   redirect("/plan");
 }
 
+async function saveGoalAction(formData: FormData) {
+  "use server";
+
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login");
+
+  const goal = String(formData.get("goal") ?? "")
+    .trim()
+    .slice(0, 1000);
+
+  await prisma.profile.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      goal: goal || null,
+    },
+    update: {
+      goal: goal || null,
+    },
+  });
+
+  redirect("/plan?goalSaved=1");
+}
+
 /* -------------------- Page -------------------- */
-export default async function PlanPage() {
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ goalSaved?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) {
     return (
@@ -77,6 +106,7 @@ export default async function PlanPage() {
     );
   }
 
+  const params = await searchParams;
   const weekStart = startOfThisWeekMonday();
 
   // Try to load an existing plan for this week
@@ -92,6 +122,16 @@ export default async function PlanPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="space-y-2">
+        <PlanGoalForm
+          defaultGoal={user.profile?.goal ?? ""}
+          action={saveGoalAction}
+        />
+        {params?.goalSaved && (
+          <p className="text-sm text-green-700">Goal saved.</p>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">This Week's Diet Plan</h1>
         <form action={generateAction}>
